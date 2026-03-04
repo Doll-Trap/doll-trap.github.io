@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header>
+      DOLL TRAP
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <!-- Gallery Section -->
+    <div class="gallery-container">
+      <h1>Gallery</h1>
+
+      <div class="gallery-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="convention">Convention</button>
+        <button class="filter-btn" data-filter="rehearsal">Rehearsal</button>
+        <button class="filter-btn" data-filter="photoshoot">Photoshoot</button>
+        <button class="filter-btn" data-filter="live">Live Event</button>
+      </div>
+
+      <!-- Convention Photos -->
+      <div class="gallery-event" data-event="convention">
+        <h2 class="event-title">Seattle Anime Expo 2026</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Expo+1" alt="Anime Expo Performance 1">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Expo+2" alt="Anime Expo Performance 2">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Expo+3" alt="Anime Expo Performance 3">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Expo+4" alt="Anime Expo Performance 4">
+          </div>
+        </div>
+      </div>
+
+      <!-- Rehearsal Photos -->
+      <div class="gallery-event" data-event="rehearsal">
+        <h2 class="event-title">Dance Rehearsal - February 2026</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Rehearsal+1" alt="Rehearsal 1">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Rehearsal+2" alt="Rehearsal 2">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Rehearsal+3" alt="Rehearsal 3">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Rehearsal+4" alt="Rehearsal 4">
+          </div>
+        </div>
+      </div>
+
+      <!-- Photoshoot Photos -->
+      <div class="gallery-event" data-event="photoshoot">
+        <h2 class="event-title">Spring 2026 Photoshoot</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+1" alt="Photoshoot 1">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+2" alt="Photoshoot 2">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+3" alt="Photoshoot 3">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+4" alt="Photoshoot 4">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+5" alt="Photoshoot 5">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Photoshoot+6" alt="Photoshoot 6">
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Event Photos -->
+      <div class="gallery-event" data-event="live">
+        <h2 class="event-title">Live Performance - March 2026</h2>
+        <div class="gallery-grid">
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Live+1" alt="Live Event 1">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Live+2" alt="Live Event 2">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Live+3" alt="Live Event 3">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Live+4" alt="Live Event 4">
+          </div>
+          <div class="gallery-item">
+            <img src="https://via.placeholder.com/300x300?text=Live+5" alt="Live Event 5">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Follow us on Instagram / Xiaohongshu / YouTube
+    </footer>
+
+    <script>
+      // Filter functionality
+      const filterBtns = document.querySelectorAll('.filter-btn');
+      const galleryEvents = document.querySelectorAll('.gallery-event');
+
+      filterBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          // Remove active class from all buttons
+          filterBtns.forEach(b => b.classList.remove('active'));
+          // Add active class to clicked button
+          btn.classList.add('active');
+
+          const filter = btn.getAttribute('data-filter');
+
+          galleryEvents.forEach(event => {
+            if (filter === 'all') {
+              event.style.display = 'block';
+            } else {
+              if (event.getAttribute('data-event') === filter) {
+                event.style.display = 'block';
+              } else {
+                event.style.display = 'none';
+              }
+            }
+          });
+        });
+      });
+
+      // Optional: Add image modal/lightbox functionality
+      const galleryItems = document.querySelectorAll('.gallery-item img');
+      galleryItems.forEach(img => {
+        img.addEventListener('click', function() {
+          // You can add a lightbox modal here if needed
+          console.log('Image clicked:', this.alt);
+        });
+      });
+    </script>
+  </body>
+</html>

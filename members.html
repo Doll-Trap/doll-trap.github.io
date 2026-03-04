@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Members - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header>
+      DOLL TRAP
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <!-- Members Section -->
+    <div class="members-container">
+      <div class="members-list">
+        <h2>Members</h2>
+        <div class="member-grid" id="memberGrid">
+          <!-- Member cards will be generated here -->
+        </div>
+        
+        <div class="members-nav">
+          <button class="nav-btn" id="prevPageBtn">← Past</button>
+          <button class="nav-btn" id="nextPageBtn">Next →</button>
+        </div>
+      </div>
+
+      <div class="member-detail">
+        <div id="memberDetailContent" class="detail-content">
+          <p style="text-align: center; color: #999; margin-top: 50px;">Click on a member to view details</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Follow us on Instagram / Xiaohongshu / YouTube
+    </footer>
+
+    <script>
+      // Member data
+      const membersData = [
+        {
+          id: 1,
+          name: 'KOKONA',
+          image: 'https://via.placeholder.com/150/FFB347/FFFFFF?text=KOKONA',
+          mbti: 'ENFP',
+          birthday: 'July 31st',
+          color: 'Blue',
+          level: '01',
+          role: 'Dancer / Performer',
+          about: 'The heart of the group with incredible dance skills and stage presence.'
+        },
+        {
+          id: 2,
+          name: 'HITOMI',
+          image: 'https://via.placeholder.com/150/FFD700/FFFFFF?text=HITOMI',
+          mbti: 'ENTJ',
+          birthday: 'March 11th',
+          color: 'Red',
+          level: '01',
+          role: 'Vocal / Dancer',
+          about: 'Versatile performer with a soothing voice and graceful movements.'
+        },
+        {
+          id: 3,
+          name: 'BUZZLY',
+          image: 'https://via.placeholder.com/150/E6B3FF/FFFFFF?text=BUZZLY',
+          mbti: 'ENFJ',
+          birthday: 'Jan 16th',
+          color: 'Pink',
+          level: '01',
+          role: 'Performer / Dancer',
+          about: 'Dynamic performer bringing energy and humor to every stage.'
+        }
+      ];
+
+      // Render member grid
+      function renderMembers() {
+        const memberGrid = document.getElementById('memberGrid');
+        memberGrid.innerHTML = '';
+
+        membersData.forEach(member => {
+          const memberCard = document.createElement('div');
+          memberCard.className = 'member-card';
+          memberCard.innerHTML = `
+            <div class="member-card-level">Lv ${member.level}</div>
+            <img src="${member.image}" alt="${member.name}">
+            <h3>${member.name}</h3>
+          `;
+          memberCard.addEventListener('click', () => showMemberDetail(member));
+          memberGrid.appendChild(memberCard);
+        });
+      }
+
+      // Show member details
+      function showMemberDetail(member) {
+        const detailContent = document.getElementById('memberDetailContent');
+        detailContent.innerHTML = `
+          <button class="back-btn" onclick="backToList()">← Back</button>
+          <div class="detail-header">
+            <img src="${member.image}" alt="${member.name}" class="detail-image">
+            <div class="detail-info">
+              <h2>${member.name}</h2>
+              <div class="detail-stat">
+                <p><strong>MBTI:</strong> ${member.mbti}</p>
+                <p><strong>Birthday:</strong> ${member.birthday}</p>
+                <p><strong>Member color:</strong> ${member.color}</p>
+              </div>
+            </div>
+            <div class="detail-level">Lv ${member.level}</div>
+          </div>
+          <p class="member-about">${member.about}</p>
+          <div class="detail-buttons">
+            <button class="action-btn">Event</button>
+            <button class="action-btn">Live</button>
+          </div>
+        `;
+      }
+
+      // Back to member list
+      function backToList() {
+        const detailContent = document.getElementById('memberDetailContent');
+        detailContent.innerHTML = '<p style="text-align: center; color: #999; margin-top: 50px;">Click on a member to view details</p>';
+      }
+
+      // Initialize
+      renderMembers();
+
+      // Navigation buttons
+      document.getElementById('prevPageBtn').addEventListener('click', () => {
+        // Placeholder for pagination
+        alert('Previous page');
+      });
+
+      document.getElementById('nextPageBtn').addEventListener('click', () => {
+        // Placeholder for pagination
+        alert('Next page');
+      });
+    </script>
+  </body>
+</html>

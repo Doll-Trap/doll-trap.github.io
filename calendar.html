@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Events Calendar - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header>
+      DOLL TRAP
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <!-- Calendar Section -->
+    <div class="calendar-container">
+      <h1>Event Calendar</h1>
+
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-box upcoming"></div>
+          <span>Upcoming Event</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box past"></div>
+          <span>Past Event</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-box today"></div>
+          <span>Today</span>
+        </div>
+      </div>
+
+      <div class="calendar-controls">
+        <button id="prevBtn">← Previous</button>
+        <div class="calendar-month" id="monthYear"></div>
+        <button id="nextBtn">Next →</button>
+      </div>
+
+      <table class="calendar-table" id="calendarTable">
+        <thead>
+          <tr>
+            <th>Sun</th>
+            <th>Mon</th>
+            <th>Tue</th>
+            <th>Wed</th>
+            <th>Thu</th>
+            <th>Fri</th>
+            <th>Sat</th>
+          </tr>
+        </thead>
+        <tbody id="calendarBody">
+        </tbody>
+      </table>
+
+      <div class="events-section">
+        <h3 id="selectedDateTitle">Select a date to view events</h3>
+        <div id="eventsList" class="no-events">Click on a date with a red dot to see events</div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+      Follow us on Instagram / Xiaohongshu / YouTube
+    </footer>
+
+    <script>
+      // Sample events data - you can modify this
+      const events = {
+        '2026-03-15': [
+          { title: 'Seattle Anime Expo Showcase', type: 'Performance', time: '2:00 PM - 3:00 PM' }
+        ],
+        '2026-03-20': [
+          { title: 'Dance Practice', type: 'Rehearsal', time: '6:00 PM - 8:00 PM' },
+          { title: 'Costume Fitting', type: 'Preparation', time: '8:00 PM - 9:00 PM' }
+        ],
+        '2026-04-05': [
+          { title: 'Convention Idol Stage', type: 'Performance', time: '3:00 PM - 4:00 PM' }
+        ],
+        '2026-04-20': [
+          { title: 'Seattle Idol Stage', type: 'Performance', time: '5:00 PM - 6:00 PM' }
+        ],
+        '2026-05-10': [
+          { title: 'Summer Tour Rehearsal', type: 'Rehearsal', time: '7:00 PM - 9:00 PM' }
+        ],
+        '2025-12-15': [
+          { title: 'Holiday Concert', type: 'Performance', time: '6:00 PM - 8:00 PM' }
+        ],
+        '2025-11-20': [
+          { title: 'Fan Meet & Greet', type: 'Community', time: '4:00 PM - 6:00 PM' }
+        ]
+      };
+
+      let currentDate = new Date();
+
+      function renderCalendar() {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+
+        // Update month/year display
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+          'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('monthYear').textContent = `${monthNames[month]} ${year}`;
+
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const daysInPrevMonth = new Date(year, month, 0).getDate();
+
+        const calendarBody = document.getElementById('calendarBody');
+        calendarBody.innerHTML = '';
+
+        let date = 1;
+        let nextMonthDate = 1;
+
+        for (let i = 0; i < 6; i++) {
+          const row = document.createElement('tr');
+
+          for (let j = 0; j < 7; j++) {
+            const cell = document.createElement('td');
+
+            if (i === 0 && j < firstDay) {
+              // Previous month's dates
+              cell.textContent = daysInPrevMonth - firstDay + j + 1;
+              cell.classList.add('other-month');
+            } else if (date > daysInMonth) {
+              // Next month's dates
+              cell.textContent = nextMonthDate;
+              cell.classList.add('other-month');
+              nextMonthDate++;
+            } else {
+              // Current month's dates
+              const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+              cell.innerHTML = `<span class="day-number">${date}</span>`;
+
+              // Check if this date has events
+              if (events[dateStr]) {
+                cell.classList.add('has-event');
+                cell.innerHTML += '<span class="event-dot"></span>';
+              }
+
+              // Check if it's today
+              const today = new Date();
+              if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                cell.classList.add('today');
+              }
+
+              cell.dataset.date = dateStr;
+              cell.addEventListener('click', function() {
+                showEvents(dateStr);
+              });
+
+              date++;
+            }
+
+            row.appendChild(cell);
+          }
+
+          calendarBody.appendChild(row);
+        }
+      }
+
+      function showEvents(dateStr) {
+        const [year, month, day] = dateStr.split('-');
+        const dateObj = new Date(year, month - 1, day);
+        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        const formattedDate = dateObj.toLocaleDateString('en-US', dateOptions);
+
+        document.getElementById('selectedDateTitle').textContent = `Events on ${formattedDate}`;
+
+        const eventsList = document.getElementById('eventsList');
+        const dayEvents = events[dateStr];
+
+        if (dayEvents && dayEvents.length > 0) {
+          eventsList.innerHTML = dayEvents.map(event => `
+            <div class="event-item">
+              <h4>${event.title}</h4>
+              <p><span class="event-type">${event.type}</span></p>
+              <p><strong>Time:</strong> ${event.time}</p>
+            </div>
+          `).join('');
+        } else {
+          eventsList.innerHTML = '<div class="no-events">No events scheduled for this date</div>';
+        }
+      }
+
+      // Navigation buttons
+      document.getElementById('prevBtn').addEventListener('click', function() {
+        currentDate.setMonth(currentDate.getMonth() - 1);
+        renderCalendar();
+        document.getElementById('eventsList').innerHTML = 'Click on a date with a red dot to see events';
+        document.getElementById('selectedDateTitle').textContent = 'Select a date to view events';
+      });
+
+      document.getElementById('nextBtn').addEventListener('click', function() {
+        currentDate.setMonth(currentDate.getMonth() + 1);
+        renderCalendar();
+        document.getElementById('eventsList').innerHTML = 'Click on a date with a red dot to see events';
+        document.getElementById('selectedDateTitle').textContent = 'Select a date to view events';
+      });
+
+      // Initial render
+      renderCalendar();
+    </script>
+  </body>
+</html>
