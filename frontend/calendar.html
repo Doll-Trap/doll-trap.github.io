@@ -84,63 +84,49 @@
     </footer>
 
     <script>
-      // Sample events data - you can modify this
-      const events = {
-        '2026-02-08': [
-          { title: 'Mercer Island Chinese Culture Fair', type: 'Performance', time: '10:00 AM - 2:00 PM' }
-        ],
-        '2026-02-13': [
-          { title: 'Circle Lunar New Year Celebration', type: 'Performance', time: '5:00 PM - 7:30 PM' }
-        ],
-        '2026-02-14': [
-          { title: 'SKBY × HCCA Spring Festival', type: 'Performance', time: '5:00 PM - 9:00 PM' }
-        ],
-        '2026-02-28': [
-          { title: 'XAMA Live House', type: 'Performance', time: '8:00 PM - 10:30 PM' }
-        ],
-        '2026-03-21': [
-          { title: 'Bowtea Maid Café', type: 'Community Event', time: '3:00 PM - 6:00 PM' }
-        ],
-        '2026-04-03': [
-          { title: 'Sakuracon at Seattle Convention Center', type: 'Convention', time: 'All Day' }
-        ],
-        '2026-04-04': [
-          { title: 'Sakuracon at Seattle Convention Center', type: 'Convention', time: 'All Day' }
-        ],
-        '2026-04-05': [
-          { title: 'Sakuracon at Seattle Convention Center', type: 'Convention', time: 'All Day' }
-        ],
-        '2026-04-25': [
-          { title: 'Underground Idol Lineup Live', type: 'Performance', time: 'TBA' }
-        ],
-        '2026-05-17': [
-          { title: 'ANI-IDOL LIVE OPEN STAGE', type: 'Performance', time: 'TBA' }
-        ],
-        '2026-05-23': [
-          { title: 'Girls Band Performance', type: 'Performance', time: 'TBA' }
-        ],
-        '2026-01-25': [
-          { title: 'New Year Celebration', type: 'Performance', time: '6:00 PM - 8:00 PM' }
-        ],
-        '2025-12-20': [
-          { title: 'Winter Festival Performance', type: 'Performance', time: '7:00 PM - 9:00 PM' }
-        ],
-        '2025-12-14': [
-          { title: 'Holiday Concert', type: 'Performance', time: '6:00 PM - 8:00 PM' }
-        ],
-        '2025-11-22': [
-          { title: 'Fall Convention Showcase', type: 'Performance', time: '3:00 PM - 5:00 PM' }
-        ],
-        '2025-11-08': [
-          { title: 'Anime Festival Performance', type: 'Performance', time: '2:00 PM - 4:00 PM' }
-        ],
-        '2025-10-25': [
-          { title: 'Autumn Idol Stage', type: 'Performance', time: '5:00 PM - 7:00 PM' }
-        ]
-      };
-
+      const API_URL = 'http://localhost:8000/api';
+      
+      // Will be populated from API
+      let events = {};
       let currentDate = new Date();
       let currentView = 'calendar';
+
+      // Fetch events from API
+      async function loadEvents() {
+        try {
+          const response = await fetch(`${API_URL}/events`);
+          const apiEvents = await response.json();
+          
+          // Convert API events to calendar format
+          events = {};
+          apiEvents.forEach(event => {
+            const date = event.date.split('T')[0]; // Get YYYY-MM-DD
+            const eventTime = new Date(event.date).toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit' 
+            });
+            
+            if (!events[date]) {
+              events[date] = [];
+            }
+            events[date].push({
+              title: event.title,
+              type: 'Event',
+              time: eventTime,
+              description: event.description,
+              location: event.location
+            });
+          });
+          
+          // Initial render
+          renderCalendar();
+          document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
+          displayNextEvent();
+        } catch (error) {
+          console.error('Error loading events:', error);
+          document.getElementById('eventsSection').innerHTML = '<h3>Error loading events</h3>';
+        }
+      }
 
       function getNextEvent() {
         const allEvents = [];
@@ -392,6 +378,9 @@
       renderCalendar();
       document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
       displayNextEvent();
+      
+      // Load events from API
+      loadEvents();
     </script>
   </body>
 </html>

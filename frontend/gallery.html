@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gallery - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <!-- Header -->
+    <header>
+      DOLL TRAP
+    </header>
+
+    <!-- Navigation -->
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Calendar</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="#contact">Contact</a>
+    </nav>
+
+    <!-- Gallery Section -->
+    <div class="gallery-container">
+      <h1>Gallery</h1>
+
+      <div class="filter-section">
+        <div class="filter-group">
+          <h3>Category</h3>
+          <div class="gallery-filters">
+            <button class="filter-btn active" data-filter="all">All</button>
+            <button class="filter-btn" data-filter="performance">Performance</button>
+            <button class="filter-btn" data-filter="rehearsal">Rehearsal</button>
+            <button class="filter-btn" data-filter="photoshoot">Photoshoot</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <h3>Member</h3>
+          <div class="member-filters">
+            <button class="member-filter-btn active" data-member="all">All Members</button>
+            <button class="member-filter-btn" data-member="buzzly">Buzzly (Pink)</button>
+            <button class="member-filter-btn" data-member="kokona">Kokona (Blue)</button>
+            <button class="member-filter-btn" data-member="hitomi">Hitomi (Red)</button>
+          </div>
+        </div>
+
+        <div class="filter-group">
+          <h3>Event</h3>
+          <div class="event-filters">
+            <button class="event-filter-btn active" data-event="all">All Events</button>
+            <button class="event-filter-btn" data-event="xama">XAMA Live House</button>
+            <button class="event-filter-btn" data-event="sakuracon">Sakuracon</button>
+            <button class="event-filter-btn" data-event="convention">Convention</button>
+            <button class="event-filter-btn" data-event="live">Live Event</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dynamic Event Sections -->
+      <div id="eventsContainer"></div>
+
+
+    <!-- Footer -->
+    <footer>
+      Follow us on Instagram / Xiaohongshu / YouTube
+    </footer>
+
+    <!-- Image Zoom Modal -->
+    <div id="imageModal" class="image-modal">
+      <span class="close">&times;</span>
+      <img id="modalImage" src="" alt="Zoomed Image">
+    </div>
+
+    <script>
+      const API_URL = 'http://localhost:8000/api';
+      
+      // Load photos and events from API
+      async function loadGallery() {
+        try {
+          const photosResponse = await fetch(`${API_URL}/photos`);
+          const photos = await photosResponse.json();
+          const eventsResponse = await fetch(`${API_URL}/events`);
+          const events = await eventsResponse.json();
+          
+          // Create event map and group photos by event
+          const eventMap = {};
+          const groupedPhotos = {};
+          
+          events.forEach(event => {
+            eventMap[event.id] = event;
+            groupedPhotos[event.id] = [];
+          });
+          
+          // Group photos by event
+          photos.forEach(photo => {
+            if (photo.event_id && groupedPhotos[photo.event_id]) {
+              groupedPhotos[photo.event_id].push(photo);
+            }
+          });
+          
+          // Generate HTML for event sections
+          const container = document.getElementById('eventsContainer');
+          let html = '';
+          
+          events.forEach(event => {
+            const eventPhotos = groupedPhotos[event.id];
+            if (eventPhotos.length === 0) return; // Skip events with no photos
+            
+            html += `
+              <div class="gallery-event" data-category="performance" data-event="${event.id}">
+                <h2 class="event-title">${event.title}</h2>
+                <div class="gallery-grid">
+            `;
+            
+            eventPhotos.forEach(photo => {
+              const memberTag = photo.member_tag || 'Group';
+              html += `
+                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}">
+                    <img src="http://localhost:8000${photo.photo_url}" alt="${photo.caption || 'Photo'}">
+                    <p class="photo-member">${memberTag}</p>
+                  </div>
+              `;
+            });
+            
+            html += `
+                </div>
+              </div>
+            `;
+          });
+          
+          if (html === '') {
+            html = '<p style="text-align: center; color: #999; grid-column: 1/-1;">No photos uploaded yet</p>';
+          }
+          
+          container.innerHTML = html;
+          
+          // Reattach event listeners
+          setupImageModal();
+          setupFilters();
+        } catch (error) {
+          console.error('Error loading gallery:', error);
+          document.getElementById('eventsContainer').innerHTML = '<p style="color: #999;">Error loading photos</p>';
+        }
+      }
+      
+      function setupImageModal() {
+        const modal = document.getElementById('imageModal');
+        const modalImg = document.getElementById('modalImage');
+        const closeBtn = document.querySelector('.close');
+        const galleryImages = document.querySelectorAll('.gallery-item img');
+
+        galleryImages.forEach(img => {
+          img.addEventListener('click', () => {
+            modal.style.display = 'block';
+            modalImg.src = img.src;
+          });
+        });
+
+        closeBtn.addEventListener('click', () => {
+          modal.style.display = 'none';
+        });
+
+        modal.addEventListener('click', (e) => {
+          if (e.target === modal) {
+            modal.style.display = 'none';
+          }
+        });
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            modal.style.display = 'none';
+          }
+        });
+      }
+      
+      function setupFilters() {
+        let activeCategory = 'all';
+        let activeMember = 'all';
+        let activeEvent = 'all';
+
+        const galleryEvents = document.querySelectorAll('.gallery-event');
+        const categoryBtns = document.querySelectorAll('.filter-btn');
+        const memberBtns = document.querySelectorAll('.member-filter-btn');
+        const eventBtns = document.querySelectorAll('.event-filter-btn');
+
+        // Category filter
+        categoryBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            categoryBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeCategory = btn.getAttribute('data-filter');
+            applyFilters();
+          });
+        });
+
+        // Member filter
+        memberBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            memberBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeMember = btn.getAttribute('data-member');
+            applyFilters();
+          });
+        });
+
+        // Event filter
+        eventBtns.forEach(btn => {
+          btn.addEventListener('click', () => {
+            eventBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeEvent = btn.getAttribute('data-event');
+            applyFilters();
+          });
+        });
+
+        // Apply all filters
+        function applyFilters() {
+          galleryEvents.forEach(eventDiv => {
+            let showEvent = true;
+
+            // Check category filter
+            if (activeCategory !== 'all') {
+              if (eventDiv.getAttribute('data-category') !== activeCategory) {
+                showEvent = false;
+              }
+            }
+
+            // Check event filter
+            if (activeEvent !== 'all') {
+              if (eventDiv.getAttribute('data-event') !== activeEvent) {
+                showEvent = false;
+              }
+            }
+
+            // Show or hide the entire event section
+            if (showEvent) {
+              eventDiv.style.display = 'block';
+              
+              // Now filter gallery items within this event
+              const items = eventDiv.querySelectorAll('.gallery-item');
+              items.forEach(item => {
+                let showItem = true;
+                
+                if (activeMember !== 'all') {
+                  if (item.getAttribute('data-member') !== activeMember && item.getAttribute('data-member') !== 'all') {
+                    showItem = false;
+                  }
+                }
+                
+                item.style.display = showItem ? 'block' : 'none';
+              });
+            } else {
+              eventDiv.style.display = 'none';
+            }
+          });
+        }
+      }
+      
+      // Load gallery on page load
+      loadGallery();
+    </script>
+  </body>
+</html>

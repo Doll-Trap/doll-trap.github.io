@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doll Trap - Admin Panel</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --pink: #d946a6;
+        --pink-light: #ec4899;
+        --blue: #3b82f6;
+        --bg-dark: #0f172a;
+        --bg-light: #1e293b;
+        --text: #e2e8f0;
+        --border: #334155;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, var(--bg-dark), var(--bg-light));
+        color: var(--text);
+        min-height: 100vh;
+      }
+
+      .navbar {
+        background: linear-gradient(135deg, var(--pink), var(--pink-light));
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 4px 12px rgba(217, 70, 166, 0.3);
+      }
+
+      .navbar h1 {
+        font-size: 24px;
+        letter-spacing: 2px;
+      }
+
+      .navbar button {
+        background: rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 10px 20px;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: all 0.3s;
+      }
+
+      .navbar button:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .login-form {
+        background: var(--bg-light);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 40px;
+        max-width: 400px;
+        margin: 100px auto;
+      }
+
+      .login-form h2 {
+        margin-bottom: 20px;
+        color: var(--pink-light);
+      }
+
+      .form-group {
+        margin-bottom: 15px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: 5px;
+        background: var(--bg-dark);
+        color: var(--text);
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--pink);
+        box-shadow: 0 0 10px rgba(217, 70, 166, 0.2);
+      }
+
+      button[type="submit"] {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, var(--pink), var(--pink-light));
+        border: none;
+        color: white;
+        font-weight: bold;
+        cursor: pointer;
+        border-radius: 5px;
+        transition: transform 0.2s;
+      }
+
+      button[type="submit"]:hover {
+        transform: scale(1.02);
+      }
+
+      .dashboard {
+        display: grid;
+        grid-template-columns: 1fr 2fr;
+        gap: 30px;
+      }
+
+      .photos-panel {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .admin-nav {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 30px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 15px;
+      }
+
+      .admin-nav-btn {
+        padding: 12px 24px;
+        border: none;
+        background: transparent;
+        color: var(--text);
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s;
+      }
+
+      .admin-nav-btn.active {
+        color: var(--pink-light);
+        border-bottom-color: var(--pink);
+      }
+
+      .admin-nav-btn:hover {
+        color: var(--pink-light);
+      }
+
+      .admin-section {
+        display: none;
+      }
+
+      .admin-section.active {
+        display: block;
+      }
+
+      .edit-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+
+      .edit-modal.active {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .edit-modal-content {
+        background: var(--bg-light);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+      }
+
+      .edit-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--border);
+        padding-bottom: 15px;
+      }
+
+      .edit-modal-header h2 {
+        margin: 0;
+        color: var(--pink-light);
+      }
+
+      .edit-modal-close {
+        background: none;
+        border: none;
+        font-size: 28px;
+        color: var(--text);
+        cursor: pointer;
+      }
+
+      .edit-modal-close:hover {
+        color: var(--pink);
+      }
+
+      .photo-thumbnail-edit {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        background: var(--blue);
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        opacity: 0;
+        transition: all 0.2s;
+      }
+
+      .photo-thumbnail:hover .photo-thumbnail-edit {
+        opacity: 1;
+      }
+
+      .photo-thumbnail-edit:hover {
+        background: #2563eb;
+      }
+
+      .photo-tabs {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+
+      .photo-tab-btn {
+        padding: 8px 16px;
+        border: none;
+        background: #94a3b8;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+        font-weight: bold;
+        transition: all 0.3s;
+      }
+
+      .photo-tab-btn.active {
+        background: var(--blue);
+      }
+
+      .photo-tab-btn:hover {
+        background: var(--blue);
+      }
+
+      .photos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        max-height: 500px;
+        overflow-y: auto;
+        padding: 15px;
+        background: var(--bg-dark);
+        border-radius: 8px;
+      }
+
+      .photo-thumbnail {
+        position: relative;
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+        border: 2px solid var(--border);
+        transition: all 0.3s;
+      }
+
+      .photo-thumbnail:hover {
+        border-color: var(--pink);
+        transform: scale(1.05);
+      }
+
+      .photo-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .photo-thumbnail-delete {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ef4444;
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        opacity: 0;
+        transition: all 0.2s;
+      }
+
+      .photo-thumbnail:hover .photo-thumbnail-delete {
+        opacity: 1;
+      }
+
+      .photo-thumbnail-delete:hover {
+        background: #dc2626;
+      }
+
+      .photo-thumbnail-info {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(180deg, transparent, rgba(0,0,0,0.8));
+        color: white;
+        padding: 8px;
+        font-size: 11px;
+        text-align: center;
+      }
+
+      .panel {
+        background: var(--bg-light);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 30px;
+      }
+
+      .panel h2 {
+        color: var(--pink-light);
+        margin-bottom: 20px;
+        border-bottom: 2px solid var(--pink);
+        padding-bottom: 10px;
+      }
+
+      .upload-area {
+        border: 2px dashed var(--pink);
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-top: 15px;
+      }
+
+      .upload-area:hover {
+        background: rgba(217, 70, 166, 0.1);
+        border-color: var(--pink-light);
+      }
+
+      .upload-area input[type="file"] {
+        display: none;
+      }
+
+      .list-items {
+        margin-top: 20px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .list-item {
+        background: var(--bg-dark);
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-left: 3px solid var(--pink);
+      }
+
+      .list-item-info {
+        flex: 1;
+      }
+
+      .list-item-info h4 {
+        color: var(--pink-light);
+        margin-bottom: 5px;
+      }
+
+      .list-item-info p {
+        font-size: 12px;
+        color: #94a3b8;
+      }
+
+      .list-item button {
+        background: #ef4444;
+        border: none;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .list-item button:hover {
+        background: #dc2626;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+      }
+
+      .alert.success {
+        background: rgba(34, 197, 94, 0.2);
+        border: 1px solid rgba(34, 197, 94, 0.5);
+        color: #86efac;
+      }
+
+      .alert.error {
+        background: rgba(239, 68, 68, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        color: #fca5a5;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      @media (max-width: 768px) {
+        .dashboard {
+          grid-template-columns: 1fr;
+        }
+
+        .photos-grid {
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <div class="navbar">
+      <h1>🎀 Doll Trap Admin</h1>
+      <button id="logoutBtn" class="hidden">Logout</button>
+    </div>
+
+    <div class="container">
+      <!-- Login Form -->
+      <div id="loginForm" class="login-form">
+        <h2>Admin Login</h2>
+        <form id="authForm">
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="username" required>
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="password" required>
+          </div>
+          <button type="submit">Login</button>
+        </form>
+        <p id="authError" class="alert error hidden" style="margin-top: 10px;"></p>
+      </div>
+
+      <!-- Dashboard (hidden until logged in) -->
+      <div id="dashboard" class="hidden">
+        <!-- Navigation between Events and Photos -->
+        <div class="admin-nav">
+          <button class="admin-nav-btn active" onclick="switchSection('events')">📅 Events</button>
+          <button class="admin-nav-btn" onclick="switchSection('photos')">📸 Photos</button>
+        </div>
+
+        <!-- Events Section -->
+        <div id="eventsSection" class="admin-section active">
+          <div class="dashboard">
+            <!-- Create Event Panel -->
+            <div class="panel">
+              <h2>📅 Create Event</h2>
+              <form id="eventForm">
+                <div class="form-group">
+                  <label>Event Title</label>
+                  <input type="text" id="eventTitle" required>
+                </div>
+                <div class="form-group">
+                  <label>Description</label>
+                  <textarea id="eventDescription" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text); resize: vertical;" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Date & Time</label>
+                  <input type="datetime-local" id="eventDate">
+                  <small style="color: #94a3b8; margin-top: 5px; display: block;">Leave empty for TBD</small>
+                </div>
+                <div class="form-group">
+                  <label>Location</label>
+                  <input type="text" id="eventLocation">
+                </div>
+                <div class="form-group">
+                  <label>Image URL</label>
+                  <input type="text" id="eventImage" placeholder="https://...">
+                </div>
+                <button type="submit">Create Event</button>
+              </form>
+              <p id="eventMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+            </div>
+
+            <!-- All Events Panel -->
+            <div class="panel">
+              <h2>📋 All Events</h2>
+              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <button id="filterAll" class="filter-btn active" onclick="filterEvents('all')" style="padding: 8px 16px; border: none; background: var(--blue); color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">All</button>
+                <button id="filterUpcoming" class="filter-btn" onclick="filterEvents('upcoming')" style="padding: 8px 16px; border: none; background: #94a3b8; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Upcoming</button>
+                <button id="filterPast" class="filter-btn" onclick="filterEvents('past')" style="padding: 8px 16px; border: none; background: #94a3b8; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Past</button>
+              </div>
+              <div id="allEventsList" class="list-items" style="max-height: 600px; overflow-y: auto;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Photos Section -->
+        <div id="photosSection" class="admin-section">
+          <div class="photos-panel">
+            <!-- Upload Panel -->
+            <div class="panel">
+              <h2>📸 Upload Photos</h2>
+              <form id="photoForm">
+                <div class="form-group">
+                  <label>Event (Optional)</label>
+                  <select id="photoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <option value="">Select Event</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Member Tag</label>
+                  <select id="photoMember" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <option value="">All Members</option>
+                    <option value="Buzzly">Buzzly</option>
+                    <option value="Kokona">Kokona</option>
+                    <option value="Hitomi">Hitomi</option>
+                    <option value="Group">Group</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Caption</label>
+                  <input type="text" id="photoCaption" placeholder="Photo description">
+                </div>
+                <div class="upload-area" id="uploadArea">
+                  <p>📤 Click or drag photos here</p>
+                  <input type="file" id="photoInput" multiple accept="image/*">
+                </div>
+                <button type="submit" style="margin-top: 15px;">Upload Photos</button>
+              </form>
+              <p id="photoMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+            </div>
+
+            <!-- Photos Gallery Panel -->
+            <div class="panel">
+              <h2>🖼️ Photo Library</h2>
+              <div class="photo-tabs" id="photoEventTabs"></div>
+              <div class="photos-grid" id="photosGrid"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Edit Photo Modal -->
+      <div id="editPhotoModal" class="edit-modal">
+        <div class="edit-modal-content">
+          <div class="edit-modal-header">
+            <h2>Edit Photo</h2>
+            <button class="edit-modal-close" onclick="closeEditPhotoModal()">&times;</button>
+          </div>
+          <form id="editPhotoForm">
+            <div class="form-group">
+              <label>Caption</label>
+              <input type="text" id="editPhotoCaption" required>
+            </div>
+            <div class="form-group">
+              <label>Member Tag</label>
+              <select id="editPhotoMember" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                <option value="Group">Group</option>
+                <option value="Buzzly">Buzzly</option>
+                <option value="Kokona">Kokona</option>
+                <option value="Hitomi">Hitomi</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Event</label>
+              <select id="editPhotoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                <option value="">No Event</option>
+              </select>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <button type="submit" style="flex: 1;">Save Changes</button>
+              <button type="button" onclick="closeEditPhotoModal()" style="flex: 1; background: #94a3b8;">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = 'http://localhost:8000/api';
+      let authToken = localStorage.getItem('authToken');
+
+      // Check if already logged in
+      if (authToken) {
+        showDashboard();
+      }
+
+      // Login
+      document.getElementById('authForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        try {
+          const response = await fetch(`${API_URL}/auth/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) throw new Error(data.error);
+
+          authToken = data.token;
+          localStorage.setItem('authToken', authToken);
+          showDashboard();
+        } catch (error) {
+          showMessage('authError', error.message, 'error');
+        }
+      });
+
+      // Logout
+      document.getElementById('logoutBtn').addEventListener('click', () => {
+        localStorage.removeItem('authToken');
+        authToken = null;
+        location.reload();
+      });
+
+      // Create Event
+      document.getElementById('eventForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const event = {
+          title: document.getElementById('eventTitle').value,
+          description: document.getElementById('eventDescription').value,
+          date: new Date(document.getElementById('eventDate').value).toISOString(),
+          location: document.getElementById('eventLocation').value,
+          image_url: document.getElementById('eventImage').value
+        };
+
+        try {
+          const response = await fetch(`${API_URL}/events`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(event)
+          });
+
+          if (!response.ok) throw new Error('Failed to create event');
+
+          showMessage('eventMessage', 'Event created!', 'success');
+          document.getElementById('eventForm').reset();
+          loadEvents();
+        } catch (error) {
+          showMessage('eventMessage', error.message, 'error');
+        }
+      });
+
+      // Upload Photos
+      document.getElementById('photoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const files = document.getElementById('photoInput').files;
+
+        if (files.length === 0) {
+          showMessage('photoMessage', 'Please select photos', 'error');
+          return;
+        }
+
+        for (let file of files) {
+          const formData = new FormData();
+          formData.append('photo', file);
+          formData.append('event_id', document.getElementById('photoEvent').value || null);
+          formData.append('member_tag', document.getElementById('photoMember').value || 'Group');
+          formData.append('caption', document.getElementById('photoCaption').value);
+
+          try {
+            const response = await fetch(`${API_URL}/photos`, {
+              method: 'POST',
+              headers: { 'Authorization': `Bearer ${authToken}` },
+              body: formData
+            });
+
+            if (!response.ok) throw new Error('Upload failed');
+          } catch (error) {
+            showMessage('photoMessage', error.message, 'error');
+            return;
+          }
+        }
+
+        showMessage('photoMessage', `${files.length} photo(s) uploaded!`, 'success');
+        document.getElementById('photoForm').reset();
+        loadPhotos();
+      });
+
+      // Drag and drop
+      const uploadArea = document.getElementById('uploadArea');
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.style.background = 'rgba(217, 70, 166, 0.2)';
+      });
+
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.style.background = '';
+      });
+
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        document.getElementById('photoInput').files = e.dataTransfer.files;
+        uploadArea.style.background = '';
+      });
+
+      uploadArea.addEventListener('click', () => {
+        document.getElementById('photoInput').click();
+      });
+
+      let allEventsData = []; // Store all events for filtering
+      let allPhotosData = []; // Store all photos
+      let currentPhotoEventFilter = 'all'; // Current photo filter
+      let editingPhotoId = null; // Current photo being edited
+
+      // Switch between Events and Photos sections
+      function switchSection(section) {
+        // Hide all sections
+        document.getElementById('eventsSection').classList.remove('active');
+        document.getElementById('photosSection').classList.remove('active');
+        
+        // Remove active class from all buttons
+        document.querySelectorAll('.admin-nav-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        
+        // Show selected section
+        if (section === 'events') {
+          document.getElementById('eventsSection').classList.add('active');
+          document.querySelectorAll('.admin-nav-btn')[0].classList.add('active');
+        } else {
+          document.getElementById('photosSection').classList.add('active');
+          document.querySelectorAll('.admin-nav-btn')[1].classList.add('active');
+        }
+      }
+
+      // Load events
+      async function loadEvents() {
+        try {
+          const response = await fetch(`${API_URL}/events`);
+          const events = await response.json();
+          allEventsData = events; // Store for filtering
+
+          // Update event select dropdown
+          const select = document.getElementById('photoEvent');
+          const currentValue = select.value;
+          select.innerHTML = '<option value="">Select Event</option>';
+          events.forEach(event => {
+            select.innerHTML += `<option value="${event.id}">${event.title}</option>`;
+          });
+          select.value = currentValue;
+
+          // Display all events in "All Events" panel with filter
+          filterEvents('all');
+          loadPhotos();
+        } catch (error) {
+          console.error('Error loading events:', error);
+        }
+      }
+
+      // Filter events
+      function filterEvents(type) {
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        let filteredEvents = allEventsData;
+
+        if (type === 'upcoming') {
+          filteredEvents = allEventsData.filter(event => {
+            if (!event.date) return false; // Exclude TBD events
+            const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate >= now;
+          });
+        } else if (type === 'past') {
+          filteredEvents = allEventsData.filter(event => {
+            if (!event.date) return false; // Exclude TBD events
+            const eventDate = new Date(event.date);
+            eventDate.setHours(0, 0, 0, 0);
+            return eventDate < now;
+          });
+        }
+
+        // Update filter button styles
+        document.getElementById('filterAll').style.background = type === 'all' ? 'var(--blue)' : '#94a3b8';
+        document.getElementById('filterUpcoming').style.background = type === 'upcoming' ? 'var(--blue)' : '#94a3b8';
+        document.getElementById('filterPast').style.background = type === 'past' ? 'var(--blue)' : '#94a3b8';
+
+        // Display filtered events
+        const allList = document.getElementById('allEventsList');
+        if (filteredEvents.length === 0) {
+          allList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No events</p>';
+        } else {
+          allList.innerHTML = filteredEvents.map(event => {
+            const eventDate = event.date ? new Date(event.date) : null;
+            const isPast = eventDate && eventDate < now;
+            
+            return `
+              <div class="list-item">
+                <div class="list-item-info">
+                  <h4>${event.title}</h4>
+                  <p style="margin: 5px 0;">${event.date ? new Date(event.date).toLocaleString() : '<strong>TBD</strong>'}</p>
+                  ${event.location ? `<p style="margin: 5px 0; font-size: 11px; color: #94a3b8;">📍 ${event.location}</p>` : ''}
+                  <p style="font-size: 11px; color: #64748b; margin-top: 8px;">${event.description || 'No description'}</p>
+                  ${isPast ? '<p style="font-size: 10px; color: #ef4444; margin-top: 5px;"><strong>PAST EVENT</strong></p>' : ''}
+                </div>
+                <div style="display: flex; gap: 5px; flex-direction: column;">
+                  <button onclick="editEvent(${event.id})" style="background: var(--blue); border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;">Edit</button>
+                  <button onclick="deleteEvent(${event.id})" style="background: #ef4444; border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;">Delete</button>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      }
+
+      // Load photos
+      async function loadPhotos() {
+        try {
+          const response = await fetch(`${API_URL}/photos`);
+          const photos = await response.json();
+          allPhotosData = photos;
+
+          // Create event map
+          const eventMap = {};
+          allEventsData.forEach(event => {
+            eventMap[event.id] = event;
+          });
+
+          // Build photo event tabs
+          const tabsContainer = document.getElementById('photoEventTabs');
+          tabsContainer.innerHTML = '<button class="photo-tab-btn active" onclick="filterPhotosByEvent(\'all\')">All Events</button>';
+          
+          allEventsData.forEach(event => {
+            const eventPhotos = photos.filter(p => p.event_id === event.id);
+            if (eventPhotos.length > 0) {
+              tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent(${event.id})">${event.title} (${eventPhotos.length})</button>`;
+            }
+          });
+
+          // Update edit form event select
+          const editEventSelect = document.getElementById('editPhotoEvent');
+          editEventSelect.innerHTML = '<option value="">No Event</option>';
+          allEventsData.forEach(event => {
+            editEventSelect.innerHTML += `<option value="${event.id}">${event.title}</option>`;
+          });
+
+          // Display photos
+          displayPhotos(photos);
+        } catch (error) {
+          console.error('Error loading photos:', error);
+        }
+      }
+
+      // Filter photos by event
+      function filterPhotosByEvent(eventId) {
+        currentPhotoEventFilter = eventId;
+
+        // Update active tab
+        document.querySelectorAll('.photo-tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        event.target.classList.add('active');
+
+        // Filter and display
+        let filteredPhotos = allPhotosData;
+        if (eventId !== 'all') {
+          filteredPhotos = allPhotosData.filter(p => p.event_id === eventId);
+        }
+        displayPhotos(filteredPhotos);
+      }
+
+      // Display photos in grid
+      function displayPhotos(photos) {
+        const grid = document.getElementById('photosGrid');
+        
+        if (photos.length === 0) {
+          grid.innerHTML = '<p style="text-align: center; color: #999; grid-column: 1/-1; padding: 20px;">No photos</p>';
+          return;
+        }
+
+        // Create event map
+        const eventMap = {};
+        allEventsData.forEach(event => {
+          eventMap[event.id] = event.title;
+        });
+
+        grid.innerHTML = photos.map(photo => `
+          <div class="photo-thumbnail">
+            <img src="http://localhost:8000${photo.photo_url}" alt="${photo.caption || 'Photo'}" onclick="window.open('http://localhost:8000${photo.photo_url}')">
+            <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
+            <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
+            <div class="photo-thumbnail-info">
+              ${photo.member_tag ? `<div>👤 ${photo.member_tag}</div>` : ''}
+              ${photo.caption ? `<div>${photo.caption}</div>` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Open edit photo modal
+      function openEditPhotoModal(photoId) {
+        const photo = allPhotosData.find(p => p.id === photoId);
+        if (!photo) return;
+
+        editingPhotoId = photoId;
+
+        // Populate form
+        document.getElementById('editPhotoCaption').value = photo.caption || '';
+        document.getElementById('editPhotoMember').value = photo.member_tag || 'Group';
+        document.getElementById('editPhotoEvent').value = photo.event_id || '';
+
+        // Show modal
+        document.getElementById('editPhotoModal').classList.add('active');
+      }
+
+      // Close edit photo modal
+      function closeEditPhotoModal() {
+        document.getElementById('editPhotoModal').classList.remove('active');
+        editingPhotoId = null;
+      }
+
+      // Handle edit photo form submission
+      document.getElementById('editPhotoForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const updatedData = {
+          caption: document.getElementById('editPhotoCaption').value,
+          member_tag: document.getElementById('editPhotoMember').value,
+          event_id: document.getElementById('editPhotoEvent').value || null
+        };
+
+        try {
+          const response = await fetch(`${API_URL}/photos/${editingPhotoId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify(updatedData)
+          });
+
+          if (!response.ok) throw new Error('Failed to update photo');
+
+          closeEditPhotoModal();
+          showMessage('photoMessage', 'Photo updated!', 'success');
+          loadPhotos();
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      });
+
+      // Close modal when clicking outside
+      document.getElementById('editPhotoModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('editPhotoModal')) {
+          closeEditPhotoModal();
+        }
+      });
+
+      // Edit event
+      function editEvent(id) {
+        fetch(`${API_URL}/events`)
+          .then(r => r.json())
+          .then(events => {
+            const event = events.find(e => e.id === id);
+            if (!event) return;
+            
+            document.getElementById('eventTitle').value = event.title;
+            document.getElementById('eventDescription').value = event.description || '';
+            document.getElementById('eventDate').value = event.date ? new Date(event.date).toISOString().slice(0, 16) : '';
+            document.getElementById('eventLocation').value = event.location || '';
+            document.getElementById('eventImage').value = event.image_url || '';
+            
+            // Replace form submit to update instead
+            const form = document.getElementById('eventForm');
+            const originalHandler = form.onsubmit;
+            form.onsubmit = async (e) => {
+              e.preventDefault();
+              const eventData = {
+                title: document.getElementById('eventTitle').value,
+                description: document.getElementById('eventDescription').value,
+                date: document.getElementById('eventDate').value ? new Date(document.getElementById('eventDate').value).toISOString() : null,
+                location: document.getElementById('eventLocation').value,
+                image_url: document.getElementById('eventImage').value
+              };
+              
+              try {
+                const response = await fetch(`${API_URL}/events/${id}`, {
+                  method: 'PUT',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authToken}`
+                  },
+                  body: JSON.stringify(eventData)
+                });
+                
+                if (!response.ok) throw new Error('Failed to update event');
+                
+                showMessage('eventMessage', 'Event updated!', 'success');
+                form.reset();
+                form.onsubmit = originalHandler;
+                loadEvents();
+              } catch (error) {
+                showMessage('eventMessage', error.message, 'error');
+              }
+            };
+            
+            document.querySelector('.panel:first-child').scrollIntoView();
+          });
+      }
+      
+      // Delete event
+      async function deleteEvent(id) {
+        if (!confirm('Delete this event?')) return;
+        try {
+          const response = await fetch(`${API_URL}/events/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!response.ok) throw new Error('Failed to delete');
+          loadEvents();
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      }
+
+      // Delete photo
+      async function deletePhoto(id) {
+        if (!confirm('Delete this photo?')) return;
+        try {
+          const response = await fetch(`${API_URL}/photos/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (!response.ok) throw new Error('Failed to delete');
+          loadPhotos();
+        } catch (error) {
+          alert('Error: ' + error.message);
+        }
+      }
+
+      // Show/hide UI
+      function showDashboard() {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('logoutBtn').classList.remove('hidden');
+        loadEvents();
+        loadPhotos();
+      }
+
+      function showMessage(elementId, message, type) {
+        const el = document.getElementById(elementId);
+        el.textContent = message;
+        el.className = `alert ${type}`;
+        el.classList.remove('hidden');
+        setTimeout(() => el.classList.add('hidden'), 5000);
+      }
+    </script>
+  </body>
+</html>
