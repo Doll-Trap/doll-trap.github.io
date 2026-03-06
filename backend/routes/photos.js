@@ -97,7 +97,7 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
     // Save to database
     const result = await pool.query(
       'INSERT INTO photos (event_id, photo_url, caption, member_tag, category, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [event_id || null, publicUrl, caption || null, member_tag || 'Group', category || 'Performance', req.user.id]
+      [event_id || null, publicUrl, caption || null, member_tag || 'Group', category, req.user.id]
     );
 
     res.status(201).json(result.rows[0]);
@@ -114,7 +114,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
 
     const result = await pool.query(
       'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3, category = $4 WHERE id = $5 RETURNING *',
-      [caption || null, member_tag || 'Group', event_id || null, category || 'Performance', req.params.id]
+      [caption || null, member_tag || 'Group', event_id || null, category, req.params.id]
     );
 
     if (result.rows.length === 0) {

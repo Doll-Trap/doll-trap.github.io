@@ -567,7 +567,8 @@
                   <select id="photoCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
                     <option value="Performance">Performance</option>
                     <option value="Rehearsal">Rehearsal</option>
-                    <option value="Visual">Visual</option>
+                    <option value="Photoshoot">Photoshoot</option>
+                    <option value="Visuals">Visuals</option>
                     <option value="Behind the Scenes">Behind the Scenes</option>
                     <option value="Event">Event</option>
                     <option value="Other">Other</option>
@@ -623,7 +624,8 @@
               <select id="editPhotoCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
                 <option value="Performance">Performance</option>
                 <option value="Rehearsal">Rehearsal</option>
-                <option value="Visual">Visual</option>
+                <option value="Photoshoot">Photoshoot</option>
+                <option value="Visuals">Visuals</option>
                 <option value="Behind the Scenes">Behind the Scenes</option>
                 <option value="Event">Event</option>
                 <option value="Other">Other</option>
@@ -772,6 +774,9 @@
           return;
         }
 
+        const category = document.getElementById('photoCategory').value;
+        console.log('Selected category for upload:', category);
+
         for (let file of files) {
           const formData = new FormData();
           formData.append('photo', file);
@@ -785,8 +790,8 @@
           const caption = document.getElementById('photoCaption').value;
           if (caption) formData.append('caption', caption);
           
-          const category = document.getElementById('photoCategory').value;
-          formData.append('category', category || 'Performance');
+          formData.append('category', category);
+          console.log('Uploading photo with category:', category);
 
           try {
             const response = await fetch(`${API_URL}/photos`, {
@@ -803,6 +808,9 @@
               const error = await response.json();
               throw new Error(error.error || 'Upload failed');
             }
+
+            const result = await response.json();
+            console.log('Photo uploaded successfully:', result);
           } catch (error) {
             showMessage('photoMessage', error.message, 'error');
             if (error.message.includes('Session expired')) {
@@ -816,7 +824,7 @@
 
         showMessage('photoMessage', `${files.length} photo(s) uploaded!`, 'success');
         document.getElementById('photoForm').reset();
-        loadPhotos();
+        await loadPhotos(); // Wait for photos to reload
       });
 
       // Drag and drop
@@ -1051,9 +1059,14 @@
           eventMap[event.id] = event.title;
         });
 
-        grid.innerHTML = photos.map(photo => `
+        grid.innerHTML = photos.map(photo => {
+          // Handle both Supabase URLs and local paths
+          const photoUrl = photo.photo_url.startsWith('http') 
+            ? photo.photo_url 
+            : `https://doll-trap-github-io.onrender.com${photo.photo_url}`;
+          return `
           <div class="photo-thumbnail">
-            <img src="https://doll-trap-github-io.onrender.com${photo.photo_url}" alt="${photo.caption || 'Photo'}" onclick="window.open('https://doll-trap-github-io.onrender.com${photo.photo_url}')">
+            <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" onclick="window.open('${photoUrl}')">
             <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
             <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
             <div class="photo-thumbnail-info">
@@ -1061,7 +1074,8 @@
               ${photo.caption ? `<div>${photo.caption}</div>` : ''}
             </div>
           </div>
-        `).join('');
+        `;
+        }).join('');
       }
 
       // Open edit photo modal
@@ -1092,15 +1106,13 @@
         e.preventDefault();
 
         const updatedData = {
+          caption: document.getElementById('editPhotoCaption').value || null,
           category: document.getElementById('editPhotoCategory').value,
           member_tag: document.getElementById('editPhotoMember').value,
           event_id: document.getElementById('editPhotoEvent').value || null
         };
-        
-        const caption = document.getElementById('editPhotoCaption').value;
-        if (caption) {
-          updatedData.caption = caption;
-        }
+
+        console.log('Updating photo', editingPhotoId, 'with data:', updatedData);
 
         try {
           const response = await fetch(`${API_URL}/photos/${editingPhotoId}`, {
@@ -1112,12 +1124,25 @@
             body: JSON.stringify(updatedData)
           });
 
-          if (!response.ok) throw new Error('Failed to update photo');
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Failed to update photo');
+          }
 
+          const result = await response.json();
+          console.log('Photo updated successfully:', result);
+          
+          // Update the cached photo data immediately
+          const photoIndex = allPhotosData.findIndex(p => p.id === editingPhotoId);
+          if (photoIndex !== -1) {
+            allPhotosData[photoIndex] = result;
+          }
+          
           closeEditPhotoModal();
           showMessage('photoMessage', 'Photo updated!', 'success');
           loadPhotos();
         } catch (error) {
+          console.error('Error updating photo:', error);
           alert('Error: ' + error.message);
         }
       });
