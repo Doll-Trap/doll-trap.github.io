@@ -111,10 +111,11 @@
             }
             events[date].push({
               title: event.title,
-              type: 'Event',
+              type: event.category || 'Event',
               time: eventTime,
               description: event.description,
-              location: event.location
+              location: event.location,
+              category: event.category
             });
           });
           
@@ -285,8 +286,10 @@
           eventsList.innerHTML = `<h3>Events on ${formattedDate}</h3>` + dayEvents.map(event => `
             <div class="event-item">
               <h4>${event.title}</h4>
-              <p><span class="event-type">${event.type}</span></p>
+              <p><span class="event-type">${event.category || event.type}</span></p>
               <p><strong>Time:</strong> ${event.time}</p>
+              ${event.location ? `<p><strong>Location:</strong> ${event.location}</p>` : ''}
+              ${event.description ? `<p>${event.description}</p>` : ''}
             </div>
           `).join('');
         } else {

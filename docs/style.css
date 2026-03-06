@@ -142,6 +142,23 @@ nav button {
   margin: 0 0 20px 0;
 }
 
+.performance-category {
+  color: #888;
+  font-size: 13px;
+  margin: 10px 0;
+  display: inline-block;
+  background: rgba(217, 70, 166, 0.1);
+  padding: 5px 12px;
+  border-radius: 15px;
+  border-left: 2px solid #d946a6;
+}
+
+.performance-location {
+  color: #888;
+  font-size: 13px;
+  margin: 10px 0 20px 0;
+}
+
 .view-all-events {
   display: inline-block;
   color: #d946a6;

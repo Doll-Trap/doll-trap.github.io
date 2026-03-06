@@ -67,12 +67,12 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { event_id, caption, member_tag } = req.body;
+    const { event_id, caption, member_tag, category } = req.body;
     const photo_url = `/uploads/${req.file.filename}`;
 
     const result = await pool.query(
-      'INSERT INTO photos (event_id, photo_url, caption, member_tag, uploaded_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [event_id || null, photo_url, caption || null, member_tag || 'Group', req.user.id]
+      'INSERT INTO photos (event_id, photo_url, caption, member_tag, category, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [event_id || null, photo_url, caption || null, member_tag || 'Group', category || 'Performance', req.user.id]
     );
 
     res.status(201).json(result.rows[0]);
@@ -84,11 +84,11 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 // Update photo (admin only)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { caption, member_tag, event_id } = req.body;
+    const { caption, member_tag, event_id, category } = req.body;
 
     const result = await pool.query(
-      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3 WHERE id = $4 RETURNING *',
-      [caption || null, member_tag || 'Group', event_id || null, req.params.id]
+      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3, category = $4 WHERE id = $5 RETURNING *',
+      [caption || null, member_tag || 'Group', event_id || null, category || 'Performance', req.params.id]
     );
 
     if (result.rows.length === 0) {

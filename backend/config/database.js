@@ -36,11 +36,21 @@ const initDB = async () => {
         date TIMESTAMP NOT NULL,
         location VARCHAR(255),
         image_url VARCHAR(255),
+        category VARCHAR(100) DEFAULT 'Live',
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Add category column if it doesn't exist (migration for existing databases)
+    try {
+      await pool.query(`
+        ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Live';
+      `);
+    } catch (e) {
+      // Column might already exist, continue
+    }
 
     // Photos table
     await pool.query(`
@@ -49,11 +59,21 @@ const initDB = async () => {
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
         photo_url VARCHAR(255) NOT NULL,
         caption TEXT,
+        category VARCHAR(100) DEFAULT 'Performance',
         member_tag VARCHAR(100),
         uploaded_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Add category column if it doesn't exist (migration for existing databases)
+    try {
+      await pool.query(`
+        ALTER TABLE photos ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Performance';
+      `);
+    } catch (e) {
+      // Column might already exist, continue
+    }
     
     // Add member_tag column if it doesn't exist (migration for existing databases)
     try {

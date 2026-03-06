@@ -135,6 +135,7 @@
             <p class="performance-date">${formattedDate}</p>
             <p class="performance-title">${event.title}</p>
             <p class="performance-time">${formattedTime}</p>
+            ${event.category ? `<p class="performance-category"><strong>Category:</strong> ${event.category}</p>` : ''}
             ${event.location ? `<p class="performance-location"><strong>Location:</strong> ${event.location}</p>` : ''}
             <a href="calendar.html" class="view-all-events">View All Events →</a>
           `;

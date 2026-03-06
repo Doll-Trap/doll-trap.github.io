@@ -505,6 +505,17 @@
                   <textarea id="eventDescription" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text); resize: vertical;" rows="3"></textarea>
                 </div>
                 <div class="form-group">
+                  <label>Category</label>
+                  <select id="eventCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <option value="Live">Live</option>
+                    <option value="Community Event">Community Event</option>
+                    <option value="Convention">Convention</option>
+                    <option value="Workshop">Workshop</option>
+                    <option value="Collaboration">Collaboration</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
                   <label>Date & Time</label>
                   <input type="datetime-local" id="eventDate">
                   <small style="color: #94a3b8; margin-top: 5px; display: block;">Leave empty for TBD</small>
@@ -546,6 +557,17 @@
                   <label>Event (Optional)</label>
                   <select id="photoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
                     <option value="">Select Event</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>Photo Category</label>
+                  <select id="photoCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <option value="Performance">Performance</option>
+                    <option value="Rehearsal">Rehearsal</option>
+                    <option value="Visual">Visual</option>
+                    <option value="Behind the Scenes">Behind the Scenes</option>
+                    <option value="Event">Event</option>
+                    <option value="Other">Other</option>
                   </select>
                 </div>
                 <div class="form-group">
@@ -591,7 +613,18 @@
           <form id="editPhotoForm">
             <div class="form-group">
               <label>Caption</label>
-              <input type="text" id="editPhotoCaption" required>
+              <input type="text" id="editPhotoCaption">
+            </div>
+            <div class="form-group">
+              <label>Category</label>
+              <select id="editPhotoCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                <option value="Performance">Performance</option>
+                <option value="Rehearsal">Rehearsal</option>
+                <option value="Visual">Visual</option>
+                <option value="Behind the Scenes">Behind the Scenes</option>
+                <option value="Event">Event</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
             <div class="form-group">
               <label>Member Tag</label>
@@ -623,7 +656,31 @@
 
       // Check if already logged in
       if (authToken) {
-        showDashboard();
+        // Verify token is still valid by making a test request
+        verifyToken();
+      }
+      
+      // Verify token validity
+      async function verifyToken() {
+        try {
+          const response = await fetch(`${API_URL}/events`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          
+          if (response.status === 401) {
+            // Token expired
+            localStorage.removeItem('authToken');
+            authToken = null;
+            location.reload();
+            return;
+          }
+          
+          if (response.ok) {
+            showDashboard();
+          }
+        } catch (error) {
+          console.error('Token verification error:', error);
+        }
       }
 
       // Login
@@ -666,7 +723,8 @@
           description: document.getElementById('eventDescription').value,
           date: new Date(document.getElementById('eventDate').value).toISOString(),
           location: document.getElementById('eventLocation').value,
-          image_url: document.getElementById('eventImage').value
+          image_url: document.getElementById('eventImage').value,
+          category: document.getElementById('eventCategory').value
         };
 
         try {
@@ -702,9 +760,18 @@
         for (let file of files) {
           const formData = new FormData();
           formData.append('photo', file);
-          formData.append('event_id', document.getElementById('photoEvent').value || null);
-          formData.append('member_tag', document.getElementById('photoMember').value || 'Group');
-          formData.append('caption', document.getElementById('photoCaption').value);
+          
+          const eventId = document.getElementById('photoEvent').value;
+          if (eventId) formData.append('event_id', eventId);
+          
+          const memberTag = document.getElementById('photoMember').value;
+          formData.append('member_tag', memberTag || 'Group');
+          
+          const caption = document.getElementById('photoCaption').value;
+          if (caption) formData.append('caption', caption);
+          
+          const category = document.getElementById('photoCategory').value;
+          formData.append('category', category || 'Performance');
 
           try {
             const response = await fetch(`${API_URL}/photos`, {
@@ -713,9 +780,21 @@
               body: formData
             });
 
-            if (!response.ok) throw new Error('Upload failed');
+            if (response.status === 401) {
+              throw new Error('Session expired. Please login again.');
+            }
+            
+            if (!response.ok) {
+              const error = await response.json();
+              throw new Error(error.error || 'Upload failed');
+            }
           } catch (error) {
             showMessage('photoMessage', error.message, 'error');
+            if (error.message.includes('Session expired')) {
+              localStorage.removeItem('authToken');
+              authToken = null;
+              setTimeout(() => location.reload(), 2000);
+            }
             return;
           }
         }
@@ -727,6 +806,26 @@
 
       // Drag and drop
       const uploadArea = document.getElementById('uploadArea');
+      const photoInput = document.getElementById('photoInput');
+      
+      // File selection feedback
+      photoInput.addEventListener('change', (e) => {
+        const files = e.target.files;
+        if (files.length > 0) {
+          const fileNames = Array.from(files).map(f => f.name).join(', ');
+          let fileInfo = document.getElementById('fileInfo');
+          if (!fileInfo) {
+            fileInfo = document.createElement('div');
+            fileInfo.id = 'fileInfo';
+            uploadArea.appendChild(fileInfo);
+          }
+          fileInfo.innerHTML = `
+            <p style="color: #4ade80; font-weight: bold; margin-bottom: 10px;">✅ ${files.length} file(s) selected:</p>
+            <p style="font-size: 12px; color: #94a3b8; margin: 5px 0;">${fileNames}</p>
+          `;
+        }
+      });
+      
       uploadArea.addEventListener('dragover', (e) => {
         e.preventDefault();
         uploadArea.style.background = 'rgba(217, 70, 166, 0.2)';
@@ -740,6 +839,17 @@
         e.preventDefault();
         document.getElementById('photoInput').files = e.dataTransfer.files;
         uploadArea.style.background = '';
+        
+        // Show feedback
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const fileNames = Array.from(files).map(f => f.name).join(', ');
+          uploadArea.innerHTML = `
+            <p>✅ ${files.length} file(s) selected:</p>
+            <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">${fileNames}</p>
+            <input type="file" id="photoInput" multiple accept="image/*">
+          `;
+        }
       });
 
       uploadArea.addEventListener('click', () => {
@@ -855,8 +965,10 @@
       // Load photos
       async function loadPhotos() {
         try {
+          console.log('Loading photos...');
           const response = await fetch(`${API_URL}/photos`);
           const photos = await response.json();
+          console.log('Photos loaded:', photos);
           allPhotosData = photos;
 
           // Create event map
@@ -884,6 +996,7 @@
           });
 
           // Display photos
+          console.log('Displaying photos...');
           displayPhotos(photos);
         } catch (error) {
           console.error('Error loading photos:', error);
@@ -945,6 +1058,7 @@
 
         // Populate form
         document.getElementById('editPhotoCaption').value = photo.caption || '';
+        document.getElementById('editPhotoCategory').value = photo.category || 'Performance';
         document.getElementById('editPhotoMember').value = photo.member_tag || 'Group';
         document.getElementById('editPhotoEvent').value = photo.event_id || '';
 
@@ -963,10 +1077,15 @@
         e.preventDefault();
 
         const updatedData = {
-          caption: document.getElementById('editPhotoCaption').value,
+          category: document.getElementById('editPhotoCategory').value,
           member_tag: document.getElementById('editPhotoMember').value,
           event_id: document.getElementById('editPhotoEvent').value || null
         };
+        
+        const caption = document.getElementById('editPhotoCaption').value;
+        if (caption) {
+          updatedData.caption = caption;
+        }
 
         try {
           const response = await fetch(`${API_URL}/photos/${editingPhotoId}`, {
@@ -1005,6 +1124,7 @@
             
             document.getElementById('eventTitle').value = event.title;
             document.getElementById('eventDescription').value = event.description || '';
+            document.getElementById('eventCategory').value = event.category || 'Live';
             document.getElementById('eventDate').value = event.date ? new Date(event.date).toISOString().slice(0, 16) : '';
             document.getElementById('eventLocation').value = event.location || '';
             document.getElementById('eventImage').value = event.image_url || '';
@@ -1019,7 +1139,8 @@
                 description: document.getElementById('eventDescription').value,
                 date: document.getElementById('eventDate').value ? new Date(document.getElementById('eventDate').value).toISOString() : null,
                 location: document.getElementById('eventLocation').value,
-                image_url: document.getElementById('eventImage').value
+                image_url: document.getElementById('eventImage').value,
+                category: document.getElementById('eventCategory').value
               };
               
               try {

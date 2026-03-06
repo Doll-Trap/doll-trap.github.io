@@ -80,10 +80,13 @@
       // Load photos and events from API
       async function loadGallery() {
         try {
+          console.log('Loading gallery...');
           const photosResponse = await fetch(`${API_URL}/photos`);
           const photos = await photosResponse.json();
+          console.log('Photos from API:', photos);
           const eventsResponse = await fetch(`${API_URL}/events`);
           const events = await eventsResponse.json();
+          console.log('Events from API:', events);
           
           // Create event map and group photos by event
           const eventMap = {};
@@ -100,6 +103,7 @@
               groupedPhotos[photo.event_id].push(photo);
             }
           });
+          console.log('Grouped photos:', groupedPhotos);
           
           // Generate HTML for event sections
           const container = document.getElementById('eventsContainer');
@@ -108,19 +112,23 @@
           events.forEach(event => {
             const eventPhotos = groupedPhotos[event.id];
             if (eventPhotos.length === 0) return; // Skip events with no photos
+            console.log(`Event ${event.id}: ${event.title} has ${eventPhotos.length} photos`);
             
             html += `
               <div class="gallery-event" data-category="performance" data-event="${event.id}">
                 <h2 class="event-title">${event.title}</h2>
+                <p style="color: #999; margin-bottom: 15px;">Category: <span style="color: #ec4899; font-weight: bold;">${event.category || 'Event'}</span></p>
                 <div class="gallery-grid">
             `;
             
             eventPhotos.forEach(photo => {
               const memberTag = photo.member_tag || 'Group';
+              const photoCategory = photo.category || 'Performance';
               html += `
-                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}">
-                    <img src="https://doll-trap-github-io.onrender.com${photo.photo_url}" alt="${photo.caption || 'Photo'}">
+                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${photoCategory.toLowerCase()}">
+                    <img src="https://doll-trap-github-io.onrender.com${photo.photo_url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || photoCategory}">
                     <p class="photo-member">${memberTag}</p>
+                    <p class="photo-category" style="font-size: 12px; color: #ec4899; margin-top: 5px;">${photoCategory}</p>
                   </div>
               `;
             });
@@ -135,7 +143,9 @@
             html = '<p style="text-align: center; color: #999; grid-column: 1/-1;">No photos uploaded yet</p>';
           }
           
+          console.log('Rendering gallery HTML:', html.length, 'characters');
           container.innerHTML = html;
+          console.log('Gallery rendered successfully');
           
           // Reattach event listeners
           setupImageModal();
