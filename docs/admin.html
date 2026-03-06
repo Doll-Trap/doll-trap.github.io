@@ -1070,6 +1070,7 @@
             <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
             <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
             <div class="photo-thumbnail-info">
+              ${photo.category ? `<div>📁 ${photo.category}</div>` : ''}
               ${photo.member_tag ? `<div>👤 ${photo.member_tag}</div>` : ''}
               ${photo.caption ? `<div>${photo.caption}</div>` : ''}
             </div>
@@ -1087,7 +1088,7 @@
 
         // Populate form
         document.getElementById('editPhotoCaption').value = photo.caption || '';
-        document.getElementById('editPhotoCategory').value = photo.category || 'Performance';
+        document.getElementById('editPhotoCategory').value = photo.category || '';
         document.getElementById('editPhotoMember').value = photo.member_tag || 'Group';
         document.getElementById('editPhotoEvent').value = photo.event_id || '';
 

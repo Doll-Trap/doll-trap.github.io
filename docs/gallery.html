@@ -171,8 +171,12 @@
             if (eventPhotos.length === 0) return;
             console.log(`Event ${event.id}: ${event.title} has ${eventPhotos.length} photos`);
             
+            // Determine the dominant category from this event's photos
+            const eventPhotoCategories = eventPhotos.map(p => (p.category || 'Performance').toLowerCase().replace(/ /g, '-'));
+            const dominantCategory = eventPhotoCategories[0] || 'performance';
+
             html += `
-              <div class="gallery-event" data-category="performance" data-event="${event.id}">
+              <div class="gallery-event" data-category="${dominantCategory}" data-event="${event.id}">
                 <h2 class="event-title">${event.title}</h2>
                 <p style="color: #999; margin-bottom: 15px;">Category: <span style="color: #ec4899; font-weight: bold;">${event.category || 'Event'}</span></p>
                 <div class="gallery-grid">

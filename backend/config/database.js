@@ -49,7 +49,12 @@ const initDB = async () => {
         ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Live';
       `);
     } catch (e) {
-      // Column might already exist, continue
+      console.error('Migration: events.category ADD COLUMN failed, retrying:', e.message);
+      try {
+        await pool.query(`ALTER TABLE events ADD COLUMN category VARCHAR(100) DEFAULT 'Live';`);
+      } catch (e2) {
+        // Column already exists, safe to ignore
+      }
     }
 
     // Photos table
@@ -72,7 +77,23 @@ const initDB = async () => {
         ALTER TABLE photos ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Performance';
       `);
     } catch (e) {
-      // Column might already exist, continue
+      console.error('Migration: photos.category ADD COLUMN failed, retrying without IF NOT EXISTS:', e.message);
+      try {
+        await pool.query(`ALTER TABLE photos ADD COLUMN category VARCHAR(100) DEFAULT 'Performance';`);
+      } catch (e2) {
+        // Column already exists, safe to ignore
+      }
+    }
+
+    // Verify category column exists
+    const categoryCheck = await pool.query(`
+      SELECT column_name FROM information_schema.columns
+      WHERE table_name = 'photos' AND column_name = 'category'
+    `);
+    if (categoryCheck.rows.length === 0) {
+      console.error('❌ CRITICAL: photos.category column still missing after migration!');
+    } else {
+      console.log('✅ photos.category column verified');
     }
     
     // Add member_tag column if it doesn't exist (migration for existing databases)
