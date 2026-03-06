@@ -34,6 +34,8 @@
             <button class="filter-btn" data-filter="performance">Performance</button>
             <button class="filter-btn" data-filter="rehearsal">Rehearsal</button>
             <button class="filter-btn" data-filter="photoshoot">Photoshoot</button>
+            <button class="filter-btn" data-filter="visuals">Visuals</button>
+            <button class="filter-btn" data-filter="behind-the-scenes">Behind the Scenes</button>
           </div>
         </div>
 
@@ -97,21 +99,76 @@
             groupedPhotos[event.id] = [];
           });
           
-          // Group photos by event
+          // Group photos by event and category
+          const photosByCategory = {
+            'Performance': [],
+            'Rehearsal': [],
+            'Photoshoot': [],
+            'Visuals': [],
+            'Behind the Scenes': [],
+            'Event': [],
+            'Other': []
+          };
+          
           photos.forEach(photo => {
+            console.log('Processing photo:', photo.id, 'category:', photo.category, 'event_id:', photo.event_id);
             if (photo.event_id && groupedPhotos[photo.event_id]) {
+              // Photo belongs to an event
               groupedPhotos[photo.event_id].push(photo);
+            } else {
+              // Photo doesn't belong to an event - group by category
+              const category = photo.category || 'Other';
+              console.log('Photo', photo.id, 'assigned to category:', category);
+              if (photosByCategory[category]) {
+                photosByCategory[category].push(photo);
+              } else {
+                console.log('Category not found, adding to Other:', category);
+                photosByCategory['Other'].push(photo);
+              }
             }
           });
-          console.log('Grouped photos:', groupedPhotos);
+          console.log('Grouped photos by event:', groupedPhotos);
+          console.log('Grouped photos by category:', photosByCategory);
           
-          // Generate HTML for event sections
+          // Generate HTML for sections
           const container = document.getElementById('eventsContainer');
           let html = '';
           
+          // First, show category sections (photos without events)
+          Object.keys(photosByCategory).forEach(category => {
+            const categoryPhotos = photosByCategory[category];
+            if (categoryPhotos.length === 0) return;
+            
+            html += `
+              <div class="gallery-event" data-category="${category.toLowerCase().replace(/ /g, '-')}" data-event="none">
+                <h2 class="event-title">${category}</h2>
+                <p style="color: #999; margin-bottom: 15px;">Standalone photos in this category</p>
+                <div class="gallery-grid">
+            `;
+            
+            categoryPhotos.forEach(photo => {
+              const memberTag = photo.member_tag || 'Group';
+              const photoUrl = photo.photo_url.startsWith('http') 
+                ? photo.photo_url 
+                : `https://doll-trap-github-io.onrender.com${photo.photo_url}`;
+              html += `
+                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${category.toLowerCase().replace(/ /g, '-')}">
+                    <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}">
+                    <p class="photo-member">${memberTag}</p>
+                  </div>
+              `;
+            });
+            
+            html += `
+                </div>
+              </div>
+            `;
+          });
+          
+          // Then, show event sections (photos with events)
           events.forEach(event => {
             const eventPhotos = groupedPhotos[event.id];
-            if (eventPhotos.length === 0) return; // Skip events with no photos
+            if (eventPhotos.length === 0) return;
             console.log(`Event ${event.id}: ${event.title} has ${eventPhotos.length} photos`);
             
             html += `
@@ -124,11 +181,14 @@
             eventPhotos.forEach(photo => {
               const memberTag = photo.member_tag || 'Group';
               const photoCategory = photo.category || 'Performance';
+              // Handle both Supabase URLs and local paths
+              const photoUrl = photo.photo_url.startsWith('http') 
+                ? photo.photo_url 
+                : `https://doll-trap-github-io.onrender.com${photo.photo_url}`;
               html += `
-                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${photoCategory.toLowerCase()}">
-                    <img src="${photo.photo_url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || photoCategory}">
+                  <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${photoCategory.toLowerCase().replace(/ /g, '-')}">
+                    <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}">
                     <p class="photo-member">${memberTag}</p>
-                    <p class="photo-category" style="font-size: 12px; color: #ec4899; margin-top: 5px;">${photoCategory}</p>
                   </div>
               `;
             });
@@ -228,42 +288,52 @@
 
         // Apply all filters
         function applyFilters() {
-          galleryEvents.forEach(eventDiv => {
-            let showEvent = true;
+          const allSections = document.querySelectorAll('.gallery-event');
+          
+          allSections.forEach(section => {
+            const sectionCategory = section.getAttribute('data-category');
+            const sectionEvent = section.getAttribute('data-event');
+            let showSection = true;
 
-            // Check category filter
-            if (activeCategory !== 'all') {
-              if (eventDiv.getAttribute('data-category') !== activeCategory) {
-                showEvent = false;
+            // Check event filter (only applies to event sections)
+            if (activeEvent !== 'all' && sectionEvent !== 'none') {
+              if (sectionEvent !== activeEvent) {
+                showSection = false;
               }
             }
 
-            // Check event filter
-            if (activeEvent !== 'all') {
-              if (eventDiv.getAttribute('data-event') !== activeEvent) {
-                showEvent = false;
-              }
-            }
-
-            // Show or hide the entire event section
-            if (showEvent) {
-              eventDiv.style.display = 'block';
+            // If section should be shown, filter items within it
+            if (showSection) {
+              const items = section.querySelectorAll('.gallery-item');
+              let visibleItems = 0;
               
-              // Now filter gallery items within this event
-              const items = eventDiv.querySelectorAll('.gallery-item');
               items.forEach(item => {
                 let showItem = true;
                 
+                // Check category filter (applies to photo category)
+                if (activeCategory !== 'all') {
+                  const itemCategory = item.getAttribute('data-photo-category');
+                  if (itemCategory !== activeCategory) {
+                    showItem = false;
+                  }
+                }
+                
+                // Check member filter
                 if (activeMember !== 'all') {
-                  if (item.getAttribute('data-member') !== activeMember && item.getAttribute('data-member') !== 'all') {
+                  const itemMember = item.getAttribute('data-member');
+                  if (itemMember !== activeMember && itemMember !== 'group') {
                     showItem = false;
                   }
                 }
                 
                 item.style.display = showItem ? 'block' : 'none';
+                if (showItem) visibleItems++;
               });
+              
+              // Hide section if no photos are visible after filtering
+              section.style.display = visibleItems > 0 ? 'block' : 'none';
             } else {
-              eventDiv.style.display = 'none';
+              section.style.display = 'none';
             }
           });
         }
