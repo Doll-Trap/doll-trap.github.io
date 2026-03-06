@@ -1,21 +1,20 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const { pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
-// Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, 'uploads/');
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY
+);
+
+// Configure multer for memory storage (we'll upload to Supabase)
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
@@ -68,15 +67,37 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
     }
 
     const { event_id, caption, member_tag, category } = req.body;
-    const photo_url = `/uploads/${req.file.filename}`;
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const filename = `photo-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+    const filePath = `photos/${filename}`;
 
+    // Upload to Supabase Storage
+    const { data, error } = await supabase.storage
+      .from('doll-trap')
+      .upload(filePath, req.file.buffer, {
+        contentType: req.file.mimetype,
+        upsert: false
+      });
+
+    if (error) {
+      console.error('Supabase upload error:', error);
+      return res.status(500).json({ error: 'Failed to upload file to storage' });
+    }
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('doll-trap')
+      .getPublicUrl(filePath);
+
+    // Save to database
     const result = await pool.query(
       'INSERT INTO photos (event_id, photo_url, caption, member_tag, category, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [event_id || null, photo_url, caption || null, member_tag || 'Group', category || 'Performance', req.user.id]
+      [event_id || null, publicUrl, caption || null, member_tag || 'Group', category || 'Performance', req.user.id]
     );
 
     res.status(201).json(result.rows[0]);
   } catch (error) {
+    console.error('Photo upload error:', error);
     res.status(500).json({ error: error.message });
   }
 });

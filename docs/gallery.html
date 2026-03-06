@@ -126,7 +126,7 @@
               const photoCategory = photo.category || 'Performance';
               html += `
                   <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${photoCategory.toLowerCase()}">
-                    <img src="https://doll-trap-github-io.onrender.com${photo.photo_url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || photoCategory}">
+                    <img src="${photo.photo_url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || photoCategory}">
                     <p class="photo-member">${memberTag}</p>
                     <p class="photo-category" style="font-size: 12px; color: #ec4899; margin-top: 5px;">${photoCategory}</p>
                   </div>
