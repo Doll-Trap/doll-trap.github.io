@@ -733,6 +733,7 @@ button[type="submit"]:hover {
     border-left: none;
     border-bottom: 3px solid transparent;
     flex-shrink: 0;
+    width: auto; /* override desktop 100% so buttons don't each fill the row */
   }
 
   .sidebar-nav-btn.active {
