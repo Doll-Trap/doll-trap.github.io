@@ -80,11 +80,16 @@
 
     <!-- Footer -->
     <footer>
-      Follow us on Instagram / Xiaohongshu / YouTube
+      Follow us on 
+      <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a> / 
+      <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
+      <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+      const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
       
       // Will be populated from API
       let events = {};
@@ -109,13 +114,14 @@
             if (!events[date]) {
               events[date] = [];
             }
+            const eventCategory = event.event_category || event.category;
             events[date].push({
               title: event.title,
-              type: event.category || 'Event',
+              type: eventCategory || 'Event',
               time: eventTime,
               description: event.description,
               location: event.location,
-              category: event.category
+              category: eventCategory
             });
           });
           
@@ -176,7 +182,7 @@
             <div class="next-event-card">
               <div class="next-event-date">${nextEvent.displayDate}</div>
               <h4>${nextEvent.title}</h4>
-              <p><span class="event-type">${nextEvent.type}</span></p>
+              <p><span class="event-type">${nextEvent.category || nextEvent.type || 'Event'}</span></p>
               <p><strong>Time:</strong> ${nextEvent.time}</p>
               <button class="jump-btn" onclick="jumpToDate('${nextEvent.date}')">View in Calendar</button>
             </div>
@@ -353,7 +359,7 @@
                 <div class="list-event-date">${event.displayDate}</div>
                 <div class="list-event-details">
                   <h4>${event.title}</h4>
-                  <p><span class="event-type">${event.type}</span></p>
+                  <p><span class="event-type">${event.category || event.type || 'Event'}</span></p>
                   <p><strong>Time:</strong> ${event.time}</p>
                 </div>
               </div>

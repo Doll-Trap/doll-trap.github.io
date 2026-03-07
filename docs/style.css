@@ -82,16 +82,38 @@ nav button {
    Hero Section
    ======================================== */
 .hero {
-  height: 400px;
+  height: 100vh;
+  min-height: 100vh;
   background-image: url("https://images.unsplash.com/photo-1518972559570-7cc1309f3229");
   background-size: cover;
   background-position: center;
+  background-attachment: fixed;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
   font-size: 48px;
   font-weight: bold;
+  position: relative;
+  overflow: hidden;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 2px 4px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease-out;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%);
+  z-index: 1;
+}
+
+.hero > * {
+  position: relative;
+  z-index: 2;
 }
 
 /* ========================================
@@ -701,6 +723,120 @@ footer {
   border: 2px solid #0066cc;
 }
 
+/* Responsive calendar */
+@media (max-width: 768px) {
+  .calendar-container {
+    padding: 24px 12px;
+  }
+
+  .calendar-container h1 {
+    font-size: 26px;
+    margin-bottom: 20px;
+  }
+
+  .calendar-content-wrapper {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .calendar-sidebar {
+    width: 100%;
+    gap: 20px;
+  }
+
+  .legend {
+    gap: 12px;
+    padding: 14px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    font-size: 13px;
+  }
+
+  .calendar-controls {
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .calendar-controls button {
+    padding: 10px 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .calendar-month {
+    font-size: 20px;
+  }
+
+  .calendar-table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 20px;
+  }
+
+  .calendar-table table,
+  .calendar-table tbody,
+  .calendar-table thead,
+  .calendar-table tr {
+    width: 100%;
+  }
+
+  .calendar-table th,
+  .calendar-table td {
+    min-width: 44px;
+    padding: 8px 4px;
+    height: 72px;
+    font-size: 12px;
+  }
+
+  .day-number {
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+
+  .event-dot {
+    width: 8px;
+    height: 8px;
+    margin-top: 3px;
+  }
+
+  .events-section,
+  .next-event-section {
+    padding: 18px;
+  }
+}
+
+@media (max-width: 480px) {
+  .calendar-controls button {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .calendar-month {
+    font-size: 17px;
+  }
+
+  .calendar-table th,
+  .calendar-table td {
+    min-width: 40px;
+    height: 64px;
+    padding: 6px 3px;
+    font-size: 11px;
+  }
+
+  .legend {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .legend-item {
+    font-size: 12px;
+  }
+}
+
 /* ========================================
    Members Page Styles
    ======================================== */
@@ -986,26 +1122,6 @@ footer {
   color: white;
   border-color: #d946a6;
   box-shadow: 0 4px 12px rgba(217, 70, 166, 0.3);
-}
-
-.gallery-filters {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-bottom: 40px;
-  flex-wrap: wrap;
-}
-
-.filter-btn {
-  background: white;
-  color: #333;
-  border: 2px solid #d946a6;
-  padding: 10px 20px;
-  cursor: pointer;
-  border-radius: 25px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  font-size: 14px;
 }
 
 .filter-btn:hover {

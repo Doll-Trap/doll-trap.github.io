@@ -7,7 +7,7 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
-  ssl: {
+  ssl: process.env.DB_HOST === 'postgres' ? false : {
     rejectUnauthorized: false
   }
 });
@@ -36,17 +36,17 @@ const initDB = async () => {
         date TIMESTAMP NOT NULL,
         location VARCHAR(255),
         image_url VARCHAR(255),
-        category VARCHAR(100) DEFAULT 'Live',
+        event_category VARCHAR(100),
         created_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
 
-    // Add category column if it doesn't exist (migration for existing databases)
+    // Add event_category column if it doesn't exist (migration for existing databases)
     try {
       await pool.query(`
-        ALTER TABLE events ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Live';
+        ALTER TABLE events ADD COLUMN IF NOT EXISTS event_category VARCHAR(100);
       `);
     } catch (e) {
       console.error('Migration: events.category ADD COLUMN failed, retrying:', e.message);
@@ -64,17 +64,17 @@ const initDB = async () => {
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
         photo_url VARCHAR(255) NOT NULL,
         caption TEXT,
-        category VARCHAR(100) DEFAULT 'Performance',
+        photo_category VARCHAR(100),
         member_tag VARCHAR(100),
         uploaded_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
     
-    // Add category column if it doesn't exist (migration for existing databases)
+    // Add photo_category column if it doesn't exist (migration for existing databases)
     try {
       await pool.query(`
-        ALTER TABLE photos ADD COLUMN IF NOT EXISTS category VARCHAR(100) DEFAULT 'Performance';
+        ALTER TABLE photos ADD COLUMN IF NOT EXISTS photo_category VARCHAR(100);
       `);
     } catch (e) {
       console.error('Migration: photos.category ADD COLUMN failed, retrying without IF NOT EXISTS:', e.message);
@@ -103,6 +103,15 @@ const initDB = async () => {
       `);
     } catch (e) {
       // Column might already exist, continue
+    }
+
+    // Remove old category column if it still exists (migration)
+    try {
+      await pool.query(`
+        ALTER TABLE photos DROP COLUMN IF EXISTS category;
+      `);
+    } catch (e) {
+      // Column might not exist, continue
     }
 
     // Future: Game features tables

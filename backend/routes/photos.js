@@ -39,7 +39,7 @@ const upload = multer({
 // Get all photos
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM photos ORDER BY created_at DESC');
+    const result = await pool.query('SELECT id, event_id, photo_url, caption, member_tag, photo_category, uploaded_by, created_at FROM photos ORDER BY created_at DESC');
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -50,7 +50,7 @@ router.get('/', async (req, res) => {
 router.get('/event/:event_id', async (req, res) => {
   try {
     const result = await pool.query(
-      'SELECT * FROM photos WHERE event_id = $1 ORDER BY created_at DESC',
+      'SELECT id, event_id, photo_url, caption, member_tag, photo_category, uploaded_by, created_at FROM photos WHERE event_id = $1 ORDER BY created_at DESC',
       [req.params.event_id]
     );
     res.json(result.rows);
@@ -66,7 +66,9 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { event_id, caption, member_tag, category } = req.body;
+    const { event_id, caption, member_tag, category, photo_category } = req.body;
+    const resolvedCategory = photo_category ?? category ?? null;
+    console.log('Uploading photo with data:', { event_id, caption, member_tag, category: resolvedCategory });
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const filename = `photo-${uniqueSuffix}${path.extname(req.file.originalname)}`;
     const filePath = `photos/${filename}`;
@@ -96,8 +98,8 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 
     // Save to database
     const result = await pool.query(
-      'INSERT INTO photos (event_id, photo_url, caption, member_tag, category, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [event_id || null, publicUrl, caption || null, member_tag || 'Group', category, req.user.id]
+      'INSERT INTO photos (event_id, photo_url, caption, member_tag, photo_category, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [event_id || null, publicUrl, caption || null, member_tag || 'Group', resolvedCategory, req.user.id]
     );
 
     res.status(201).json(result.rows[0]);
@@ -110,17 +112,20 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 // Update photo (admin only)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { caption, member_tag, event_id, category } = req.body;
+    const { caption, member_tag, event_id, category, photo_category } = req.body;
+    const resolvedCategory = photo_category ?? category ?? null;
+    console.log('Updating photo', req.params.id, 'with data:', { caption, member_tag, event_id, category: resolvedCategory });
 
     const result = await pool.query(
-      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3, category = $4 WHERE id = $5 RETURNING *',
-      [caption || null, member_tag || 'Group', event_id || null, category, req.params.id]
+      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3, photo_category = $4 WHERE id = $5 RETURNING *',
+      [caption || null, member_tag || 'Group', event_id || null, resolvedCategory, req.params.id]
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
+    console.log('Photo updated successfully:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });

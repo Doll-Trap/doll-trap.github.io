@@ -44,7 +44,7 @@
     </div>
 
     <!-- Hero Section -->
-    <div class="hero">
+    <div class="hero" id="heroSection">
       Seattle Local Undergraound Idol Group
     </div>
 
@@ -52,7 +52,7 @@
     <div class="section">
       <h2>About Us</h2>
       <p>
-        Doll Trap is a cosplay idol performance group based in Seattle.
+        Doll Trap is an Undergraound idol performance group based in Seattle.
         We perform anime dance covers and idol stages at conventions and live events.
       </p>
     </div>
@@ -89,11 +89,37 @@
 
     <!-- Footer -->
     <footer>
-      Follow us on Instagram / Xiaohongshu / YouTube
+      Follow us on 
+      <a href="YOUR_INSTAGRAM_URL_HERE" target="_blank" rel="noopener noreferrer">Instagram</a> / 
+      <a href="YOUR_XIAOHONGSHU_URL_HERE" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
+      <a href="YOUR_YOUTUBE_URL_HERE" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+      const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
+      const API_ORIGIN = API_URL.replace('/api', '');
+      
+      // Load random photo for hero background
+      async function loadRandomHeroPhoto() {
+        try {
+          const response = await fetch(`${API_URL}/photos`);
+          const photos = await response.json();
+          
+          if (photos.length > 0) {
+            const randomPhoto = photos[Math.floor(Math.random() * photos.length)];
+            const photoUrl = randomPhoto.photo_url.startsWith('http') 
+              ? randomPhoto.photo_url 
+              : `${API_ORIGIN}${randomPhoto.photo_url}`;
+            
+            document.getElementById('heroSection').style.backgroundImage = `url('${photoUrl}')`;
+          }
+        } catch (error) {
+          console.error('Error loading hero photo:', error);
+          // Keep default background if loading fails
+        }
+      }
       
       // Load next event from API
       async function loadNextEvent() {
@@ -148,6 +174,30 @@
       
       // Load on page load
       loadNextEvent();
+      loadRandomHeroPhoto();
+      
+      // Parallax scroll effect for hero section
+      let ticking = false;
+      window.addEventListener('scroll', () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            const scrolled = window.pageYOffset;
+            const heroSection = document.getElementById('heroSection');
+            
+            if (heroSection) {
+              // Parallax effect - slow movement
+              heroSection.style.transform = `translateY(${scrolled * 0.5}px)`;
+              
+              // Fade out effect as user scrolls
+              const opacity = Math.max(0, 1 - scrolled / 600);
+              heroSection.style.opacity = opacity;
+            }
+            
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
       
       // Login modal functions
       function openLoginModal() {

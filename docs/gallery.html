@@ -67,7 +67,10 @@
 
     <!-- Footer -->
     <footer>
-      Follow us on Instagram / Xiaohongshu / YouTube
+      Follow us on 
+      <a href="YOUR_INSTAGRAM_URL_HERE" target="_blank" rel="noopener noreferrer">Instagram</a> / 
+      <a href="YOUR_XIAOHONGSHU_URL_HERE" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
+      <a href="YOUR_YOUTUBE_URL_HERE" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
     <!-- Image Zoom Modal -->
@@ -77,7 +80,10 @@
     </div>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+      const API_URL = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+        ? 'http://localhost:8000/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
+      const API_ORIGIN = API_URL.replace('/api', '');
       
       // Load photos and events from API
       async function loadGallery() {
@@ -111,13 +117,13 @@
           };
           
           photos.forEach(photo => {
-            console.log('Processing photo:', photo.id, 'category:', photo.category, 'event_id:', photo.event_id);
+            console.log('Processing photo:', photo.id, 'category:', photo.photo_category, 'event_id:', photo.event_id);
             if (photo.event_id && groupedPhotos[photo.event_id]) {
               // Photo belongs to an event
               groupedPhotos[photo.event_id].push(photo);
             } else {
               // Photo doesn't belong to an event - group by category
-              const category = photo.category || 'Other';
+              const category = photo.photo_category || 'Other';
               console.log('Photo', photo.id, 'assigned to category:', category);
               if (photosByCategory[category]) {
                 photosByCategory[category].push(photo);
@@ -150,7 +156,7 @@
               const memberTag = photo.member_tag || 'Group';
               const photoUrl = photo.photo_url.startsWith('http') 
                 ? photo.photo_url 
-                : `https://doll-trap-github-io.onrender.com${photo.photo_url}`;
+                : `${API_ORIGIN}${photo.photo_url}`;
               html += `
                   <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${category.toLowerCase().replace(/ /g, '-')}">
                     <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}">
@@ -178,17 +184,17 @@
             html += `
               <div class="gallery-event" data-category="${dominantCategory}" data-event="${event.id}">
                 <h2 class="event-title">${event.title}</h2>
-                <p style="color: #999; margin-bottom: 15px;">Category: <span style="color: #ec4899; font-weight: bold;">${event.category || 'Event'}</span></p>
+                <p style="color: #999; margin-bottom: 15px;">Category: <span style="color: #ec4899; font-weight: bold;">${event.event_category || 'Event'}</span></p>
                 <div class="gallery-grid">
             `;
             
             eventPhotos.forEach(photo => {
               const memberTag = photo.member_tag || 'Group';
-              const photoCategory = photo.category || 'Performance';
+              const photoCategory = photo.photo_category || 'Performance';
               // Handle both Supabase URLs and local paths
               const photoUrl = photo.photo_url.startsWith('http') 
                 ? photo.photo_url 
-                : `https://doll-trap-github-io.onrender.com${photo.photo_url}`;
+                : `${API_ORIGIN}${photo.photo_url}`;
               html += `
                   <div class="gallery-item" data-member="${memberTag.toLowerCase()}" data-photo-category="${photoCategory.toLowerCase().replace(/ /g, '-')}">
                     <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}">

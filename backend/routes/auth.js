@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -59,6 +60,11 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+});
+
+// Verify token
+router.get('/verify', authMiddleware, async (req, res) => {
+  res.json({ valid: true, user: req.user });
 });
 
 module.exports = router;
