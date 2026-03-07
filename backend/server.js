@@ -41,6 +41,7 @@ const startServer = async () => {
     await initDB();
     app.listen(PORT, () => {
       console.log(`🚀 Server running on http://localhost:${PORT}`);
+      console.log(`📁 Photo folders route should be available at /api/photo-folders`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

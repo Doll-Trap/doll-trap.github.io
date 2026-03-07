@@ -138,12 +138,16 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
     // Create default "Others" folder if it doesn't exist
     try {
       const othersCheck = await pool.query(`SELECT id FROM photo_folders WHERE name = 'Others'`);
       if (othersCheck.rows.length === 0) {
-        await pool.query(`INSERT INTO photo_folders (name, created_by) VALUES ('Others', 1)`);
+        // Create without created_by to avoid foreign key issues
+        await pool.query(`INSERT INTO photo_folders (name) VALUES ('Others')`);
         console.log('✅ Created default "Others" folder');
+      } else {
+        console.log('✅ "Others" folder already exists');
       }
     } catch (e) {
       console.error('Migration: Could not create default Others folder:', e.message);
@@ -154,16 +158,17 @@ const initDB = async () => {
       const othersFolder = await pool.query(`SELECT id FROM photo_folders WHERE name = 'Others'`);
       if (othersFolder.rows.length > 0) {
         const othersFolderId = othersFolder.rows[0].id;
-        await pool.query(`
+        const result = await pool.query(`
           UPDATE photos 
           SET folder_id = $1 
           WHERE event_id IS NULL AND folder_id IS NULL
         `, [othersFolderId]);
-        console.log('✅ Assigned orphaned photos to Others folder');
+        console.log(`✅ Assigned ${result.rowCount} photos to Others folder`);
       }
     } catch (e) {
       console.error('Migration: Could not assign photos to Others folder:', e.message);
     }
+
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
