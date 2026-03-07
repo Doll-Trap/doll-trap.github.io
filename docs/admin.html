@@ -37,6 +37,9 @@
 
       <!-- Dashboard (hidden until logged in) -->
       <div id="dashboard" class="hidden">
+        <!-- Mobile backdrop (tap to close drawer) -->
+        <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="closeMobileSidebar()"></div>
+
         <div class="admin-layout">
 
           <!-- Sidebar -->
@@ -67,6 +70,12 @@
 
           <!-- Main Content -->
           <div class="main-content">
+
+            <!-- Mobile-only top bar -->
+            <div class="mobile-topbar">
+              <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+              <span class="mobile-section-title" id="mobileSectionTitle">📅 Events</span>
+            </div>
 
         <!-- Events Section -->
         <div id="eventsSection" class="admin-section active">

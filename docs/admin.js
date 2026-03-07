@@ -446,10 +446,37 @@ function switchSection(section, clickedBtn) {
 
   document.getElementById(section + 'Section').classList.add('active');
   if (clickedBtn) clickedBtn.classList.add('active');
+
+  // Update mobile topbar title
+  const titles = { events: '📅 Events', photos: '📸 Photos' };
+  const titleEl = document.getElementById('mobileSectionTitle');
+  if (titleEl && titles[section]) titleEl.textContent = titles[section];
+
+  // Close drawer on mobile after selecting
+  if (window.innerWidth <= 900) closeMobileSidebar();
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  if (window.innerWidth <= 900) {
+    // Mobile: toggle overlay drawer
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebarBackdrop');
+    const isOpen = sidebar.classList.contains('mobile-open');
+    if (isOpen) {
+      closeMobileSidebar();
+    } else {
+      sidebar.classList.add('mobile-open');
+      backdrop.classList.add('active');
+    }
+  } else {
+    // Desktop: collapse/expand width
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
+}
+
+function closeMobileSidebar() {
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.remove('active');
 }
 
 function togglePanel(panel) {
