@@ -248,6 +248,17 @@ Edit `backend/routes/photos.js` to modify:
 - Allowed file types (JPEG, PNG, GIF, WebP)
 - Supabase Storage upload behavior
 
+For all new uploads, the backend writes the file to Supabase Storage first and then stores the returned public URL in the `photos` table. This means new images do not depend on the Render instance staying awake or keeping a local `uploads/` folder.
+
+Required env vars for reliable new uploads:
+
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+```
+
+`SUPABASE_KEY` can still be used as a fallback, but `SUPABASE_SERVICE_ROLE_KEY` is recommended for server-side uploads.
+
 ### Legacy Photo Migration
 If old records still point to `/uploads/...`, migrate them to Supabase Storage so they survive deploys and restarts:
 

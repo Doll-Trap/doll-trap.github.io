@@ -7,6 +7,17 @@ const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 let hasWarnedAboutLegacyUploads = false;
+const STORAGE_BUCKET = 'doll-trap';
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY).');
+  }
+
+  return createClient(supabaseUrl, supabaseKey);
+}
 
 function isLegacyUpload(photoUrl) {
   return typeof photoUrl === 'string' && photoUrl.startsWith('/uploads/');
@@ -25,12 +36,6 @@ function decoratePhotoRows(rows) {
     is_legacy_upload: isLegacyUpload(row.photo_url)
   }));
 }
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY
-);
 
 // Configure multer for memory storage (we'll upload to Supabase)
 const storage = multer.memoryStorage();
@@ -94,6 +99,8 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    const supabase = getSupabaseClient();
+
     const { event_id, caption, member_tag } = req.body;
     const resolvedEventId = event_id || null;
     console.log('Uploading photo with data:', {
@@ -107,7 +114,7 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 
     // Upload to Supabase Storage
     const { data, error } = await supabase.storage
-      .from('doll-trap')
+      .from(STORAGE_BUCKET)
       .upload(filePath, req.file.buffer, {
         contentType: req.file.mimetype,
         upsert: false
@@ -123,8 +130,12 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('doll-trap')
+      .from(STORAGE_BUCKET)
       .getPublicUrl(filePath);
+
+    if (!publicUrl || !publicUrl.startsWith('http')) {
+      throw new Error('Storage upload succeeded but no valid public URL was returned.');
+    }
 
     console.log('Uploaded to Supabase:', publicUrl);
 

@@ -423,6 +423,7 @@
         }
 
         const eventId = document.getElementById('photoEvent').value;
+        let uploadedCount = 0;
 
         for (let file of files) {
           const formData = new FormData();
@@ -455,6 +456,8 @@
             }
 
             const result = await response.json();
+            assertPersistentPhotoUpload(result);
+            uploadedCount += 1;
             console.log('Photo uploaded successfully:', result);
           } catch (error) {
             showMessage('photoMessage', error.message, 'error');
@@ -467,7 +470,7 @@
           }
         }
 
-        showMessage('photoMessage', `${files.length} photo(s) uploaded!`, 'success');
+        showMessage('photoMessage', `${uploadedCount} photo(s) uploaded to persistent storage!`, 'success');
         document.getElementById('photoForm').reset();
         await loadPhotos(); // Wait for photos to reload
       });
@@ -650,6 +653,16 @@
           return cleanedText ? `${fallbackMessage}: ${cleanedText.slice(0, 140)}` : fallbackMessage;
         } catch (_) {
           return fallbackMessage;
+        }
+      }
+
+      function assertPersistentPhotoUpload(photo) {
+        if (!photo || typeof photo.photo_url !== 'string' || !photo.photo_url.trim()) {
+          throw new Error('Upload completed but the server did not return a valid photo URL.');
+        }
+
+        if (photo.photo_url.startsWith('/uploads/')) {
+          throw new Error('Upload fallback detected: server returned a local /uploads path instead of a persistent Supabase URL. Please redeploy the backend and verify Supabase env vars on Render.');
         }
       }
 
