@@ -166,6 +166,15 @@ const initDB = async () => {
       console.error('Migration: events.date DROP NOT NULL failed:', e.message);
     }
 
+    // Add end_time column for optional event end time
+    try {
+      await pool.query(`
+        ALTER TABLE events ADD COLUMN IF NOT EXISTS end_time TIME;
+      `);
+    } catch (e) {
+      console.error('Migration: events.end_time ADD COLUMN failed:', e.message);
+    }
+
     // Future: Game features tables
     await pool.query(`
       CREATE TABLE IF NOT EXISTS game_users (

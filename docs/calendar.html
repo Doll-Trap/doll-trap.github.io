@@ -83,6 +83,26 @@
       <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
+    <!-- Event Detail Modal -->
+    <div id="eventDetailModal" class="event-modal-overlay" style="display:none;" onclick="closeEventModal(event)">
+      <div class="event-modal-box">
+        <button class="event-modal-close" onclick="closeEventModal()">&times;</button>
+        <div id="eventModalPosterWrap" class="event-modal-poster" style="display:none;">
+          <img id="eventModalPoster" src="" alt="Event Poster">
+        </div>
+        <div class="event-modal-body">
+          <div id="eventModalCategory" class="event-modal-tag"></div>
+          <h2 id="eventModalTitle"></h2>
+          <div id="eventModalDate" class="event-modal-meta" style="display:none;"></div>
+          <div id="eventModalLocation" class="event-modal-meta" style="display:none;"></div>
+          <div id="eventModalDesc" class="event-modal-desc" style="display:none;"></div>
+          <div class="event-modal-actions">
+            <a id="eventModalPhotosLink" href="#" class="event-modal-photos-btn" style="display:none;">📸 View Photos</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       const API_URL = 'https://doll-trap-github-io.onrender.com/api';
       const authToken = localStorage.getItem('authToken');
@@ -145,11 +165,14 @@
             }
             const eventCategory = getEventCategory(event);
             events[date].push({
+              id: event.id,
               title: event.title,
               type: eventCategory || 'Event',
               time: eventTime,
+              end_time: event.end_time ? event.end_time.slice(0, 5) : null,
               description: event.description,
               location: event.location,
+              image_url: event.image_url || null,
               category: eventCategory
             });
           });
@@ -208,14 +231,20 @@
 
         if (nextEvent) {
           nextEventContent.innerHTML = `
-            <div class="next-event-card">
+            <div class="next-event-card event-item-clickable" onclick="openEventModal(${JSON.stringify({}).replace(/"/g, '&quot;')})" data-event-key="next">
               <div class="next-event-date">${nextEvent.displayDate}</div>
               <h4>${nextEvent.title}</h4>
               <p><span class="event-type">${nextEvent.category || nextEvent.type || 'Event'}</span></p>
-              <p><strong>Time:</strong> ${nextEvent.time}</p>
-              <button class="jump-btn" onclick="jumpToDate('${nextEvent.date}')">View in Calendar</button>
+              <p><strong>Time:</strong> ${nextEvent.time}${nextEvent.end_time ? ` – ${nextEvent.end_time}` : ''}</p>
+              <button class="jump-btn" onclick="event.stopPropagation(); jumpToDate('${nextEvent.date}')">View in Calendar</button>
+              <span class="event-item-more" style="display:block; margin-top:8px;">View details →</span>
             </div>
           `;
+          // Attach click with full data after render
+          document.querySelector('[data-event-key="next"]').addEventListener('click', function(e) {
+            if (e.target.classList.contains('jump-btn')) return;
+            openEventModal(nextEvent);
+          });
         } else {
           nextEventContent.innerHTML = '<div class="no-events">No upcoming events scheduled</div>';
         }
@@ -308,6 +337,82 @@
         }
       }
 
+      function openEventModal(eventObj) {
+        const modal = document.getElementById('eventDetailModal');
+        document.getElementById('eventModalTitle').textContent = eventObj.title;
+
+        // Category tag
+        const tagEl = document.getElementById('eventModalCategory');
+        tagEl.textContent = eventObj.category || eventObj.type || 'Event';
+
+        // Date & time
+        const dateEl = document.getElementById('eventModalDate');
+        if (eventObj.displayDate || eventObj.date) {
+          const displayDate = eventObj.displayDate || (() => {
+            const [y,m,d] = eventObj.date.split('-');
+            return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          })();
+          const timeStr = eventObj.time ? ` · ${eventObj.time}${eventObj.end_time ? ' – ' + eventObj.end_time : ''}` : '';
+          dateEl.innerHTML = `📅 ${displayDate}${timeStr}`;
+          dateEl.style.display = 'block';
+        } else {
+          dateEl.style.display = 'none';
+        }
+
+        // Location
+        const locEl = document.getElementById('eventModalLocation');
+        if (eventObj.location) {
+          locEl.innerHTML = `📍 ${eventObj.location}`;
+          locEl.style.display = 'block';
+        } else {
+          locEl.style.display = 'none';
+        }
+
+        // Description
+        const descEl = document.getElementById('eventModalDesc');
+        if (eventObj.description) {
+          descEl.innerHTML = eventObj.description.replace(/\n/g, '<br>');
+          descEl.style.display = 'block';
+        } else {
+          descEl.style.display = 'none';
+        }
+
+        // Poster image
+        const posterWrap = document.getElementById('eventModalPosterWrap');
+        const posterImg = document.getElementById('eventModalPoster');
+        if (eventObj.image_url) {
+          posterImg.src = eventObj.image_url;
+          posterWrap.style.display = 'block';
+        } else {
+          posterWrap.style.display = 'none';
+        }
+
+        // Photos link
+        const photosLink = document.getElementById('eventModalPhotosLink');
+        if (eventObj.id) {
+          photosLink.href = `gallery.html#event-${eventObj.id}`;
+          photosLink.style.display = 'inline-block';
+        } else {
+          photosLink.style.display = 'none';
+        }
+
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeEventModal(e) {
+        if (e && e.target !== document.getElementById('eventDetailModal')) return;
+        document.getElementById('eventDetailModal').style.display = 'none';
+        document.body.style.overflow = '';
+      }
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          document.getElementById('eventDetailModal').style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      });
+
       function showEvents(dateStr) {
         const [year, month, day] = dateStr.split('-');
         const dateObj = new Date(year, month - 1, day);
@@ -318,15 +423,21 @@
         const dayEvents = events[dateStr];
 
         if (dayEvents && dayEvents.length > 0) {
-          eventsList.innerHTML = `<h3>Events on ${formattedDate}</h3>` + dayEvents.map(event => `
-            <div class="event-item">
+          eventsList.innerHTML = `<h3>Events on ${formattedDate}</h3>` + dayEvents.map((event, i) => `
+            <div class="event-item event-item-clickable" data-date="${dateStr}" data-idx="${i}">
               <h4>${event.title}</h4>
               <p><span class="event-type">${event.category || event.type}</span></p>
-              <p><strong>Time:</strong> ${event.time}</p>
+              <p><strong>Time:</strong> ${event.time}${event.end_time ? ` – ${event.end_time}` : ''}</p>
               ${event.location ? `<p><strong>Location:</strong> ${event.location}</p>` : ''}
-              ${event.description ? `<p>${event.description}</p>` : ''}
+              <span class="event-item-more">View details →</span>
             </div>
           `).join('');
+          eventsList.querySelectorAll('[data-date]').forEach(el => {
+            el.addEventListener('click', () => {
+              const ev = calendarEventForDate(el.dataset.date, parseInt(el.dataset.idx));
+              openEventModal({ ...ev, displayDate: formattedDate });
+            });
+          });
         } else {
           eventsList.innerHTML = `<h3>Events on ${formattedDate}</h3><div class="no-events">No events scheduled for this date</div>`;
         }
@@ -397,6 +508,10 @@
         } else {
           eventsList.innerHTML = '<div class="no-events">No events scheduled for this month</div>';
         }
+      }
+
+      function calendarEventForDate(dateStr, index) {
+        return (events[dateStr] || [])[index] || {};
       }
 
       // Navigation buttons

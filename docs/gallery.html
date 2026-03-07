@@ -39,6 +39,19 @@
       <div id="albumView" style="display: none; margin-top: 20px;">
         <button id="backToFoldersBtn" class="filter-btn" style="margin-bottom: 16px;">← Back to Albums</button>
         <h2 id="albumTitle" class="event-title"></h2>
+
+        <!-- Event Detail Banner -->
+        <div id="eventDetailBanner" class="event-detail-header" style="display: none;">
+          <div id="eventDetailPosterWrap" class="event-detail-poster">
+            <img id="eventDetailPoster" src="" alt="Event Poster">
+          </div>
+          <div class="event-detail-info">
+            <div id="eventDetailDate" class="event-detail-row" style="display:none;"></div>
+            <div id="eventDetailLocation" class="event-detail-row" style="display:none;"></div>
+            <div id="eventDetailDesc" class="event-detail-row" style="display:none;"></div>
+          </div>
+        </div>
+
         <div id="albumMeta" style="color: #777; margin-bottom: 16px;"></div>
         <div id="albumGrid" class="gallery-grid"></div>
       </div>
@@ -270,6 +283,12 @@
         const albumTitle = document.getElementById('albumTitle');
         const albumMeta = document.getElementById('albumMeta');
         const albumGrid = document.getElementById('albumGrid');
+        const eventDetailBanner = document.getElementById('eventDetailBanner');
+        const posterWrap = document.getElementById('eventDetailPosterWrap');
+        const posterImg = document.getElementById('eventDetailPoster');
+        const dateEl = document.getElementById('eventDetailDate');
+        const locationEl = document.getElementById('eventDetailLocation');
+        const descEl = document.getElementById('eventDetailDesc');
 
         // Apply member filter
         const filteredPhotos = currentMemberFilter 
@@ -282,14 +301,59 @@
 
         if (key.startsWith('event-')) {
           const eventId = key.replace('event-', '');
-          const event = allEvents.find(e => String(e.id) === eventId);
+          const eventObj = allEvents.find(e => String(e.id) === eventId);
           photos = filteredPhotos.filter(p => String(p.event_id) === eventId);
-          title = event?.title || 'Album';
-          meta = `${getCollectionTypeLabel(event || {})} · ${event?.event_category || 'General'} · ${photos.length} photos`;
+          title = eventObj?.title || 'Album';
+          meta = `${photos.length} photo${photos.length !== 1 ? 's' : ''}`;
+
+          if (eventObj) {
+            // Date & time
+            if (eventObj.date) {
+              const d = new Date(eventObj.date);
+              const dateStr = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+              const endStr = eventObj.end_time ? ` – ${eventObj.end_time.slice(0,5)}` : '';
+              dateEl.innerHTML = `📅 <strong>${dateStr}</strong> · ${timeStr}${endStr}`;
+              dateEl.style.display = 'block';
+            } else {
+              dateEl.style.display = 'none';
+            }
+
+            // Location
+            if (eventObj.location) {
+              locationEl.innerHTML = `📍 ${eventObj.location}`;
+              locationEl.style.display = 'block';
+            } else {
+              locationEl.style.display = 'none';
+            }
+
+            // Description
+            if (eventObj.description) {
+              descEl.innerHTML = eventObj.description;
+              descEl.style.display = 'block';
+            } else {
+              descEl.style.display = 'none';
+            }
+
+            // Poster
+            if (eventObj.image_url) {
+              const posterUrl = eventObj.image_url.startsWith('http') ? eventObj.image_url : `${API_ORIGIN}${eventObj.image_url}`;
+              posterImg.src = posterUrl;
+              posterWrap.style.display = 'block';
+            } else {
+              posterWrap.style.display = 'none';
+            }
+
+            const hasDetails = eventObj.date || eventObj.location || eventObj.description || eventObj.image_url;
+            eventDetailBanner.style.display = hasDetails ? 'flex' : 'none';
+          } else {
+            eventDetailBanner.style.display = 'none';
+          }
         } else if (key === 'unassigned') {
           photos = filteredPhotos.filter(photo => !photo.event_id);
           title = 'Other Photos';
           meta = `Collection · ${photos.length} photos`;
+          eventDetailBanner.style.display = 'none';
         }
 
         albumTitle.textContent = title;
@@ -330,6 +394,12 @@
 
           renderFolderCards();
           setupImageModal();
+
+          // Auto-open album from URL hash (e.g., gallery.html#event-24)
+          const hashKey = window.location.hash.replace('#', '');
+          if (hashKey.startsWith('event-') || hashKey === 'unassigned') {
+            openAlbum(hashKey);
+          }
         } catch (error) {
           console.error('Error loading gallery:', error);
           document.getElementById('folderContainer').innerHTML = '<p style="color: #999;">Error loading albums</p>';

@@ -1,6 +1,18 @@
 const express = require('express');
+const multer = require('multer');
+const path = require('path');
+const { createClient } = require('@supabase/supabase-js');
 const { pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
+
+const posterUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    cb(null, allowed.includes(file.mimetype));
+  }
+});
 
 const router = express.Router();
 
@@ -40,8 +52,37 @@ async function getEventSelectFields() {
     ? 'COALESCE(event_category, category)'
     : 'event_category';
 
-  return `id, title, description, date, location, image_url, ${categoryExpression} AS event_category, ${categoryExpression} AS category, kind, created_by, created_at, updated_at`;
+  return `id, title, description, date, end_time, location, image_url, ${categoryExpression} AS event_category, ${categoryExpression} AS category, kind, created_by, created_at, updated_at`;
 }
+
+// Upload event poster (admin only)
+router.post('/upload-poster', authMiddleware, posterUpload.single('poster'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+    if (!supabaseUrl || !supabaseKey) {
+      return res.status(500).json({ error: 'Supabase storage not configured' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const filename = `poster-${uniqueSuffix}${path.extname(req.file.originalname)}`;
+    const filePath = `posters/${filename}`;
+
+    const { error } = await supabase.storage
+      .from('doll-trap')
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
+
+    if (error) return res.status(500).json({ error: error.message });
+
+    const { data: { publicUrl } } = supabase.storage.from('doll-trap').getPublicUrl(filePath);
+    res.json({ url: publicUrl });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Get all events
 router.get('/', async (req, res) => {
@@ -77,7 +118,7 @@ router.get('/:id', async (req, res) => {
 // Create event (admin only)
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    const { title, description, date, location, image_url, category, event_category, kind } = req.body;
+    const { title, description, date, end_time, location, image_url, category, event_category, kind } = req.body;
     const resolvedKind = kind === 'album' ? 'album' : 'event';
     const resolvedCategory = event_category ?? category ?? (resolvedKind === 'event' ? 'Live' : null);
 
@@ -90,8 +131,8 @@ router.post('/', authMiddleware, async (req, res) => {
     }
 
     const result = await pool.query(
-      'INSERT INTO events (title, description, date, location, image_url, event_category, kind, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [title, description || null, date || null, location || null, image_url || null, resolvedCategory, resolvedKind, req.user.id]
+      'INSERT INTO events (title, description, date, end_time, location, image_url, event_category, kind, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *',
+      [title, description || null, date || null, end_time || null, location || null, image_url || null, resolvedCategory, resolvedKind, req.user.id]
     );
 
     result.rows[0].category = result.rows[0].event_category;
@@ -105,7 +146,7 @@ router.post('/', authMiddleware, async (req, res) => {
 // Update event (admin only)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { title, description, date, location, image_url, category, event_category, kind } = req.body;
+    const { title, description, date, end_time, location, image_url, category, event_category, kind } = req.body;
     const resolvedKind = kind === 'album' ? 'album' : 'event';
     const resolvedCategory = event_category ?? category ?? (resolvedKind === 'event' ? 'Live' : null);
 
@@ -118,8 +159,8 @@ router.put('/:id', authMiddleware, async (req, res) => {
     }
 
     const result = await pool.query(
-      'UPDATE events SET title = $1, description = $2, date = $3, location = $4, image_url = $5, event_category = $6, kind = $7, updated_at = CURRENT_TIMESTAMP WHERE id = $8 RETURNING *',
-      [title, description || null, date || null, location || null, image_url || null, resolvedCategory, resolvedKind, req.params.id]
+      'UPDATE events SET title = $1, description = $2, date = $3, end_time = $4, location = $5, image_url = $6, event_category = $7, kind = $8, updated_at = CURRENT_TIMESTAMP WHERE id = $9 RETURNING *',
+      [title, description || null, date || null, end_time || null, location || null, image_url || null, resolvedCategory, resolvedKind, req.params.id]
     );
 
     if (result.rows.length === 0) {

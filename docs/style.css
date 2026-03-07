@@ -1549,3 +1549,221 @@ footer span {
     right: 12px;
   }
 }
+
+/* ========================================
+   Event Detail Banner (Gallery Album View)
+   ======================================== */
+.event-detail-header {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+  background: var(--surface-strong);
+  border-radius: 16px;
+  padding: 20px 24px;
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-soft);
+}
+
+.event-detail-poster {
+  flex-shrink: 0;
+  width: 180px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.event-detail-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.event-detail-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.event-detail-row {
+  color: var(--text-secondary);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.event-detail-row strong {
+  color: var(--text-primary);
+}
+
+.view-photos-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--pink);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.view-photos-link:hover {
+  text-decoration: underline;
+}
+
+/* ========================================
+   Event Detail Modal
+   ======================================== */
+.event-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.event-modal-box {
+  background: var(--surface-strong);
+  border-radius: 20px;
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 0.28);
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.event-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: rgba(0,0,0,0.07);
+  border: none;
+  border-radius: 50%;
+  width: 34px;
+  height: 34px;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-secondary);
+  z-index: 1;
+  transition: background 0.2s;
+}
+
+.event-modal-close:hover {
+  background: rgba(217, 70, 166, 0.12);
+  color: var(--pink);
+}
+
+.event-modal-poster {
+  width: 100%;
+  max-height: 300px;
+  overflow: hidden;
+  border-radius: 20px 20px 0 0;
+}
+
+.event-modal-poster img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.event-modal-body {
+  padding: 24px 28px 28px;
+}
+
+.event-modal-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(59,130,246,0.12), rgba(217,70,166,0.12));
+  color: var(--pink);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.event-modal-body h2 {
+  margin: 0 0 14px;
+  font-size: 24px;
+  color: var(--text-primary);
+  padding-right: 24px;
+}
+
+.event-modal-meta {
+  font-size: 15px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+.event-modal-desc {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-soft);
+  font-size: 15px;
+  color: var(--text-secondary);
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.event-modal-actions {
+  margin-top: 20px;
+}
+
+.event-modal-photos-btn {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  color: white;
+  font-weight: 700;
+  font-size: 14px;
+  text-decoration: none;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.event-modal-photos-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.event-item-clickable {
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+
+.event-item-clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.13);
+}
+
+.event-item-more {
+  display: inline-block;
+  margin-top: 6px;
+  color: var(--pink);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@media (max-width: 540px) {
+  .event-detail-header {
+    flex-direction: column;
+  }
+  .event-detail-poster {
+    width: 100%;
+    height: 200px;
+  }
+}
