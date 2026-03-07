@@ -13,7 +13,6 @@
       <h1>🎀 Doll Trap Admin</h1>
       <div class="navbar-actions">
         <a href="index.html" class="navbar-home-link">← Back to Home</a>
-        <button id="accountSettingsBtn" class="hidden" type="button">Account</button>
         <button id="logoutBtn" class="hidden">Logout</button>
       </div>
     </div>
@@ -38,18 +37,47 @@
 
       <!-- Dashboard (hidden until logged in) -->
       <div id="dashboard" class="hidden">
-        <!-- Navigation between Events and Photos -->
-        <div class="admin-nav">
-          <button class="admin-nav-btn active" onclick="switchSection('events')">📅 Events</button>
-          <button class="admin-nav-btn" onclick="switchSection('photos')">📸 Photos</button>
-        </div>
+        <div class="admin-layout">
+
+          <!-- Sidebar -->
+          <div class="sidebar" id="sidebar">
+            <button class="sidebar-toggle" onclick="toggleSidebar()" title="收起/展开菜单">☰</button>
+            <nav class="sidebar-nav">
+              <button class="sidebar-nav-btn active" onclick="switchSection('events', this)">
+                <span class="sidebar-icon">📅</span>
+                <span class="sidebar-label">Events</span>
+              </button>
+              <button class="sidebar-nav-btn" onclick="switchSection('photos', this)">
+                <span class="sidebar-icon">📸</span>
+                <span class="sidebar-label">Photos</span>
+              </button>
+
+              <!-- Bottom actions -->
+              <div class="sidebar-divider"></div>
+              <button class="sidebar-nav-btn" id="accountSettingsBtn" onclick="document.getElementById('accountSettingsModal').classList.add('active')">
+                <span class="sidebar-icon">⚙️</span>
+                <span class="sidebar-label">Account</span>
+              </button>
+              <button class="sidebar-nav-btn sidebar-nav-logout" id="sidebarLogoutBtn">
+                <span class="sidebar-icon">🚪</span>
+                <span class="sidebar-label">Logout</span>
+              </button>
+            </nav>
+          </div>
+
+          <!-- Main Content -->
+          <div class="main-content">
 
         <!-- Events Section -->
         <div id="eventsSection" class="admin-section active">
           <div class="dashboard">
             <!-- Create Event Panel -->
-            <div class="panel">
-              <h2>📅 Create Event</h2>
+            <div class="panel" id="createEventPanel">
+              <div class="panel-header" onclick="togglePanel(this.parentElement)">
+                <h2>📅 Create Event</h2>
+                <span class="panel-toggle-icon">▼</span>
+              </div>
+              <div class="panel-body">
               <form id="eventForm">
                 <div class="form-group">
                   <label>Type</label>
@@ -59,7 +87,7 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label>Event Title</label>
+                  <label>Event Title <span style="color:#ef4444;">*</span></label>
                   <input type="text" id="eventTitle" required>
                 </div>
                 <div class="form-group">
@@ -79,25 +107,45 @@
                   </select>
                 </div>
                 <div class="form-group" id="eventDateGroup">
-                  <label>Date <span id="eventDateHint" style="color: #94a3b8;">(required for events)</span></label>
+                  <label>Date <span style="color:#ef4444;">*</span> <span id="eventDateHint" style="color: #94a3b8;">(required for events)</span></label>
                   <input type="date" id="eventDate">
                 </div>
                 <div class="form-group" id="eventTimeGroup">
-                  <label>Time <span style="color: #94a3b8;">(optional)</span></label>
+                  <label>Start Time</label>
                   <input type="time" id="eventTime">
+                </div>
+                <div class="form-group" id="eventEndTimeGroup">
+                  <label>End Time</label>
+                  <input type="time" id="eventEndTime">
                 </div>
                 <div class="form-group">
                   <label>Location</label>
                   <input type="text" id="eventLocation">
                 </div>
                 <div class="form-group">
-                  <label>Image URL</label>
-                  <input type="text" id="eventImage" placeholder="https://...">
+                  <label>Event Poster</label>
+                  <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div class="upload-area" id="posterUploadArea" style="padding: 14px; text-align:center; cursor:pointer;" onclick="document.getElementById('posterFileInput').click()">
+                      <p style="margin:0; font-size:13px; color:#94a3b8;">📤 Click to upload poster image</p>
+                      <input type="file" id="posterFileInput" accept="image/*" style="display:none;">
+                    </div>
+                    <div id="posterPreviewWrap" style="display:none; position:relative;">
+                      <img id="posterPreview" src="" alt="Poster Preview" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px;">
+                      <button type="button" onclick="clearPosterUpload()" style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.55); color:white; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:14px; line-height:1;">&times;</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                      <div style="flex:1; height:1px; background:var(--border);"></div>
+                      <span style="color:#94a3b8; font-size:12px;">or paste URL</span>
+                      <div style="flex:1; height:1px; background:var(--border);"></div>
+                    </div>
+                    <input type="text" id="eventImage" placeholder="https://..." oninput="onPosterUrlInput()">
+                  </div>
                 </div>
                 <button type="submit" id="eventSubmitBtn">Create Event</button>
                 <button type="button" id="eventCancelEditBtn" class="hidden" style="margin-top: 10px; background: #94a3b8;">Cancel Edit</button>
               </form>
               <p id="eventMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+              </div><!-- /panel-body -->
             </div>
 
             <!-- All Events Panel -->
@@ -117,11 +165,15 @@
         <div id="photosSection" class="admin-section">
           <div class="photos-panel">
             <!-- Upload Panel -->
-            <div class="panel">
-              <h2>📸 Upload Photos</h2>
+            <div class="panel" id="uploadPhotosPanel">
+              <div class="panel-header" onclick="togglePanel(this.parentElement)">
+                <h2>📸 Upload Photos</h2>
+                <span class="panel-toggle-icon">▼</span>
+              </div>
+              <div class="panel-body">
               <form id="photoForm">
                 <div class="form-group">
-                  <label>Event / Album (Optional)</label>
+                  <label>Event / Album</label>
                   <select id="photoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
                     <option value="">No Event/Album</option>
                   </select>
@@ -145,12 +197,13 @@
                   <input type="text" id="photoCaption" placeholder="Photo description">
                 </div>
                 <div class="upload-area" id="uploadArea">
-                  <p>📤 Click or drag multiple photos here</p>
+                  <p>📤 Click or drag multiple photos here <span style="color:#ef4444;">*</span></p>
                   <input type="file" id="photoInput" multiple accept="image/*">
                 </div>
-                <button type="submit" style="margin-top: 15px;">Upload Photos</button>
+                <button type="submit" id="uploadPhotosBtn" style="margin-top: 15px;">Upload Photos</button>
               </form>
               <p id="photoMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+              </div><!-- /panel-body -->
             </div>
 
             <!-- Photos Gallery Panel -->
@@ -161,6 +214,8 @@
             </div>
           </div>
         </div>
+          </div><!-- /main-content -->
+        </div><!-- /admin-layout -->
       </div>
 
       <!-- Edit Photo Modal -->
@@ -224,852 +279,6 @@
       </div>
     </div>
 
-    <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
-      const API_ORIGIN = API_URL.replace('/api', '');
-      let authToken = localStorage.getItem('authToken');
-      let dashboardShown = false;
-
-      // Check if already logged in
-      if (authToken) {
-        showDashboard();
-        verifyToken();
-      }
-      
-      // Verify token validity
-      async function verifyToken() {
-        try {
-          const response = await fetch(`${API_URL}/auth/verify`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
-
-          if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            dashboardShown = false;
-            document.getElementById('dashboard').classList.add('hidden');
-            document.getElementById('loginForm').classList.remove('hidden');
-            document.getElementById('accountSettingsBtn').classList.add('hidden');
-            document.getElementById('logoutBtn').classList.add('hidden');
-            return;
-          }
-
-          if (response.ok) {
-            showDashboard();
-          }
-        } catch (error) {
-          console.error('Token verification error:', error);
-        }
-      }
-
-      // Login
-      document.getElementById('authForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-
-        try {
-          const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-          });
-
-          const data = await response.json();
-
-          if (!response.ok) throw new Error(data.error);
-
-          authToken = data.token;
-          localStorage.setItem('authToken', authToken);
-          showDashboard();
-        } catch (error) {
-          showMessage('authError', error.message, 'error');
-        }
-      });
-
-      // Logout
-      document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('authToken');
-        authToken = null;
-        closeAccountSettingsModal();
-        location.reload();
-      });
-
-      document.getElementById('accountSettingsBtn').addEventListener('click', () => {
-        document.getElementById('accountSettingsModal').classList.add('active');
-      });
-
-      document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const currentPassword = document.getElementById('currentPassword').value;
-        const newPassword = document.getElementById('newPassword').value;
-        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
-
-        if (newPassword !== confirmNewPassword) {
-          showMessage('passwordMessage', 'New passwords do not match', 'error');
-          return;
-        }
-
-        if (newPassword.length < 8) {
-          showMessage('passwordMessage', 'New password must be at least 8 characters long', 'error');
-          return;
-        }
-
-        try {
-          const response = await fetch(`${API_URL}/auth/change-password`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({ currentPassword, newPassword })
-          });
-
-          if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            throw new Error('Session expired or current password is incorrect');
-          }
-
-          const data = await response.json();
-
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to update password');
-          }
-
-          document.getElementById('changePasswordForm').reset();
-          showMessage('passwordMessage', 'Password updated successfully', 'success');
-        } catch (error) {
-          showMessage('passwordMessage', error.message, 'error');
-        }
-      });
-
-      // Create Event
-      document.getElementById('eventForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const isEditing = editingEventId !== null;
-        const eventKind = document.getElementById('eventKind').value || editingEventKind || 'event';
-        
-        const dateValue = document.getElementById('eventDate').value;
-        const timeValue = document.getElementById('eventTime').value;
-
-        if (eventKind === 'event' && !dateValue) {
-          showMessage('eventMessage', 'Date required for events', 'error');
-          return;
-        }
-        
-        let dateString = null;
-        if (dateValue && timeValue) {
-          dateString = `${dateValue}T${timeValue}`;
-        } else if (dateValue) {
-          dateString = `${dateValue}T00:00:00`;
-        }
-        
-        const event = {
-          title: document.getElementById('eventTitle').value,
-          description: document.getElementById('eventDescription').value,
-          date: dateString ? new Date(dateString).toISOString() : null,
-          location: document.getElementById('eventLocation').value,
-          image_url: document.getElementById('eventImage').value,
-          event_category: eventKind === 'event' ? document.getElementById('eventCategory').value : null,
-          kind: eventKind
-        };
-
-        try {
-          const response = await fetch(isEditing ? `${API_URL}/events/${editingEventId}` : `${API_URL}/events`, {
-            method: isEditing ? 'PUT' : 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(event)
-          });
-
-          if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            throw new Error('Session expired. Please login again.');
-          }
-
-          if (!response.ok) {
-            const errorMessage = await parseApiError(
-              response,
-              isEditing ? 'Failed to update event' : 'Failed to create event'
-            );
-            throw new Error(errorMessage);
-          }
-
-          showMessage('eventMessage', isEditing ? 'Event updated!' : 'Event created!', 'success');
-          resetEventFormMode();
-          loadEvents();
-        } catch (error) {
-          showMessage('eventMessage', error.message, 'error');
-        }
-      });
-
-      document.getElementById('eventCancelEditBtn').addEventListener('click', () => {
-        resetEventFormMode();
-      });
-
-      // Upload Photos
-      document.getElementById('photoForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const files = document.getElementById('photoInput').files;
-
-        if (files.length === 0) {
-          showMessage('photoMessage', 'Please select photos', 'error');
-          return;
-        }
-
-        const eventId = document.getElementById('photoEvent').value;
-        let uploadedCount = 0;
-
-        for (let file of files) {
-          const formData = new FormData();
-          formData.append('photo', file);
-
-          if (eventId) {
-            formData.append('event_id', eventId);
-          }
-          
-          const memberTag = document.getElementById('photoMember').value;
-          formData.append('member_tag', memberTag || 'Group');
-          
-          const caption = document.getElementById('photoCaption').value;
-          if (caption) formData.append('caption', caption);
-
-          try {
-            const response = await fetch(`${API_URL}/photos`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${authToken}` },
-              body: formData
-            });
-
-            if (response.status === 401) {
-              throw new Error('Session expired. Please login again.');
-            }
-            
-            if (!response.ok) {
-              const errorMessage = await parseApiError(response, 'Upload failed');
-              throw new Error(errorMessage);
-            }
-
-            const result = await response.json();
-            assertPersistentPhotoUpload(result);
-            uploadedCount += 1;
-            console.log('Photo uploaded successfully:', result);
-          } catch (error) {
-            showMessage('photoMessage', error.message, 'error');
-            if (error.message.includes('Session expired')) {
-              localStorage.removeItem('authToken');
-              authToken = null;
-              setTimeout(() => location.reload(), 2000);
-            }
-            return;
-          }
-        }
-
-        showMessage('photoMessage', `${uploadedCount} photo(s) uploaded to persistent storage!`, 'success');
-        document.getElementById('photoForm').reset();
-        await loadPhotos(); // Wait for photos to reload
-      });
-      // Create a new album
-      document.getElementById('createFolderBtn').addEventListener('click', async () => {
-        const input = document.getElementById('newFolderName');
-        const name = input.value.trim();
-
-        if (!name) {
-          showMessage('photoMessage', 'Please enter an album name', 'error');
-          return;
-        }
-
-        try {
-          // Create album as an event without a date
-          const response = await fetch(`${API_URL}/events`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify({
-              title: name,
-              description: '',
-              date: null,
-              location: null,
-              image_url: null,
-              event_category: null,
-              kind: 'album'
-            })
-          });
-
-          if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            throw new Error('Session expired. Please login again.');
-          }
-
-          if (!response.ok) {
-            const errorMessage = await parseApiError(response, 'Failed to create album');
-            throw new Error(errorMessage);
-          }
-
-          const album = await response.json();
-          input.value = '';
-          await loadEvents();
-          document.getElementById('photoEvent').value = album.id;
-          showMessage('photoMessage', `Album "${album.title}" created`, 'success');
-        } catch (error) {
-          showMessage('photoMessage', error.message, 'error');
-        }
-      });
-
-      // Drag and drop
-      const uploadArea = document.getElementById('uploadArea');
-      const photoInput = document.getElementById('photoInput');
-      
-      // File selection feedback
-      photoInput.addEventListener('change', (e) => {
-        const files = e.target.files;
-        if (files.length > 0) {
-          const fileNames = Array.from(files).map(f => f.name).join(', ');
-          let fileInfo = document.getElementById('fileInfo');
-          if (!fileInfo) {
-            fileInfo = document.createElement('div');
-            fileInfo.id = 'fileInfo';
-            uploadArea.appendChild(fileInfo);
-          }
-          fileInfo.innerHTML = `
-            <p style="color: #4ade80; font-weight: bold; margin-bottom: 10px;">✅ ${files.length} file(s) selected:</p>
-            <p style="font-size: 12px; color: #94a3b8; margin: 5px 0;">${fileNames}</p>
-          `;
-        }
-      });
-      
-      uploadArea.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        uploadArea.style.background = 'rgba(217, 70, 166, 0.2)';
-      });
-
-      uploadArea.addEventListener('dragleave', () => {
-        uploadArea.style.background = '';
-      });
-
-      uploadArea.addEventListener('drop', (e) => {
-        e.preventDefault();
-        document.getElementById('photoInput').files = e.dataTransfer.files;
-        uploadArea.style.background = '';
-        
-        // Show feedback
-        const files = e.dataTransfer.files;
-        if (files.length > 0) {
-          const fileNames = Array.from(files).map(f => f.name).join(', ');
-          uploadArea.innerHTML = `
-            <p>✅ ${files.length} file(s) selected:</p>
-            <p style="font-size: 12px; color: #94a3b8; margin-top: 5px;">${fileNames}</p>
-            <input type="file" id="photoInput" multiple accept="image/*">
-          `;
-        }
-      });
-
-      uploadArea.addEventListener('click', () => {
-        document.getElementById('photoInput').click();
-      });
-
-      let allEventsData = []; // Store all events for filtering
-      let allPhotosData = []; // Store all photos
-      let currentPhotoEventFilter = 'all'; // Current photo filter
-      let editingPhotoId = null; // Current photo being edited
-      let editingEventId = null; // Current event being edited
-      let editingEventKind = 'event';
-      const EVENT_CATEGORY_OPTIONS = ['Live', 'Performance', 'Community Event', 'Convention', 'Workshop', 'Collaboration', 'Other'];
-
-      function normalizeEventCategory(value) {
-        if (!value) return null;
-        const normalizedValue = String(value).trim().toLowerCase();
-        const match = EVENT_CATEGORY_OPTIONS.find(option => option.toLowerCase() === normalizedValue);
-        return match || null;
-      }
-
-      function getStoredEventCategory(event) {
-        const directCategory = normalizeEventCategory(event?.event_category || event?.category);
-        if (directCategory) {
-          return directCategory;
-        }
-
-        const descriptionPrefix = event?.description?.split(/\s[-–—]\s/)[0]?.trim();
-        return normalizeEventCategory(descriptionPrefix);
-      }
-
-      function getEventKind(event) {
-        return event.kind || (event.date ? 'event' : 'album');
-      }
-
-      function getEventTypeLabel(event) {
-        return getEventKind(event) === 'album' ? 'Album' : 'Event';
-      }
-
-      function syncEventKindUI(kind) {
-        editingEventKind = kind === 'album' ? 'album' : 'event';
-
-        const isAlbum = editingEventKind === 'album';
-        const categoryGroup = document.getElementById('eventCategoryGroup');
-        const dateGroup = document.getElementById('eventDateGroup');
-        const timeGroup = document.getElementById('eventTimeGroup');
-        const dateHint = document.getElementById('eventDateHint');
-        const submitButton = document.getElementById('eventSubmitBtn');
-
-        document.getElementById('eventKind').value = editingEventKind;
-
-        categoryGroup.style.display = isAlbum ? 'none' : 'block';
-        dateGroup.style.display = 'block';
-        timeGroup.style.display = isAlbum ? 'none' : 'block';
-        dateHint.textContent = isAlbum ? '(leave empty to keep as album)' : '(required for events)';
-
-        if (editingEventId !== null) {
-          submitButton.textContent = isAlbum ? 'Save Album' : 'Save Event';
-        } else {
-          submitButton.textContent = isAlbum ? 'Create Album' : 'Create Event';
-        }
-      }
-
-      async function parseApiError(response, fallbackMessage) {
-        const contentType = response.headers.get('content-type') || '';
-
-        try {
-          if (contentType.includes('application/json')) {
-            const data = await response.json();
-            return data.error || data.message || fallbackMessage;
-          }
-
-          const rawText = await response.text();
-          if (!rawText) return fallbackMessage;
-
-          const cleanedText = rawText
-            .replace(/<[^>]*>/g, ' ')
-            .replace(/\s+/g, ' ')
-            .trim();
-
-          return cleanedText ? `${fallbackMessage}: ${cleanedText.slice(0, 140)}` : fallbackMessage;
-        } catch (_) {
-          return fallbackMessage;
-        }
-      }
-
-      function assertPersistentPhotoUpload(photo) {
-        if (!photo || typeof photo.photo_url !== 'string' || !photo.photo_url.trim()) {
-          throw new Error('Upload completed but the server did not return a valid photo URL.');
-        }
-
-        if (photo.photo_url.startsWith('/uploads/')) {
-          throw new Error('Upload fallback detected: server returned a local /uploads path instead of a persistent Supabase URL. Please redeploy the backend and verify Supabase env vars on Render.');
-        }
-      }
-
-      function resetEventFormMode() {
-        editingEventId = null;
-        document.getElementById('eventForm').reset();
-        document.getElementById('eventCancelEditBtn').classList.add('hidden');
-        syncEventKindUI('event');
-      }
-
-      document.getElementById('eventKind').addEventListener('change', (e) => {
-        syncEventKindUI(e.target.value);
-      });
-
-      // Switch between Events and Photos sections
-      function switchSection(section) {
-        // Hide all sections
-        document.getElementById('eventsSection').classList.remove('active');
-        document.getElementById('photosSection').classList.remove('active');
-        
-        // Remove active class from all buttons
-        document.querySelectorAll('.admin-nav-btn').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        
-        // Show selected section
-        if (section === 'events') {
-          document.getElementById('eventsSection').classList.add('active');
-          document.querySelectorAll('.admin-nav-btn')[0].classList.add('active');
-        } else {
-          document.getElementById('photosSection').classList.add('active');
-          document.querySelectorAll('.admin-nav-btn')[1].classList.add('active');
-        }
-      }
-
-      // Load events
-      async function loadEvents() {
-        try {
-          const response = await fetch(`${API_URL}/events`);
-          const events = await response.json();
-          allEventsData = events; // Store for filtering
-
-          // Update upload event select dropdown
-          const select = document.getElementById('photoEvent');
-          const currentValue = select.value;
-          select.innerHTML = '<option value="">No Event/Album</option>';
-          events.forEach(event => {
-            const icon = getEventKind(event) === 'album' ? '📁' : '📅';
-            select.innerHTML += `<option value="${event.id}">${icon} ${event.title}</option>`;
-          });
-          select.value = currentValue;
-
-          // Update edit event select dropdown
-          const editEventSelect = document.getElementById('editPhotoEvent');
-          const currentEditEventValue = editEventSelect.value;
-          editEventSelect.innerHTML = '<option value="">No Event/Album</option>';
-          events.forEach(event => {
-            const icon = getEventKind(event) === 'album' ? '📁' : '📅';
-            editEventSelect.innerHTML += `<option value="${event.id}">${icon} ${event.title}</option>`;
-          });
-          editEventSelect.value = currentEditEventValue;
-
-          // Display all events in "All Events" panel with filter
-          filterEvents('all');
-          await loadPhotos();
-        } catch (error) {
-          console.error('Error loading events:', error);
-        }
-      }
-
-      // Filter events
-      function filterEvents(type) {
-        const now = new Date();
-        now.setHours(0, 0, 0, 0);
-
-        let filteredEvents = allEventsData;
-
-        if (type === 'upcoming') {
-          filteredEvents = allEventsData.filter(event => {
-            if (getEventKind(event) !== 'event' || !event.date) return false;
-            const eventDate = new Date(event.date);
-            eventDate.setHours(0, 0, 0, 0);
-            return eventDate >= now;
-          });
-        } else if (type === 'past') {
-          filteredEvents = allEventsData.filter(event => {
-            if (getEventKind(event) !== 'event' || !event.date) return false;
-            const eventDate = new Date(event.date);
-            eventDate.setHours(0, 0, 0, 0);
-            return eventDate < now;
-          });
-        }
-
-        // Update filter button styles
-        document.getElementById('filterAll').style.background = type === 'all' ? 'var(--blue)' : '#94a3b8';
-        document.getElementById('filterUpcoming').style.background = type === 'upcoming' ? 'var(--blue)' : '#94a3b8';
-        document.getElementById('filterPast').style.background = type === 'past' ? 'var(--blue)' : '#94a3b8';
-
-        // Display filtered events
-        const allList = document.getElementById('allEventsList');
-        if (filteredEvents.length === 0) {
-          allList.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">No events</p>';
-        } else {
-          allList.innerHTML = filteredEvents.map(event => {
-            const eventDate = event.date ? new Date(event.date) : null;
-            const eventType = getEventTypeLabel(event);
-            const isPast = getEventKind(event) === 'event' && eventDate && eventDate < now;
-            
-            return `
-              <div class="list-item">
-                <div class="list-item-info">
-                  <h4>${event.title} <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">· ${eventType}</span></h4>
-                  <p style="margin: 5px 0;">${event.date ? new Date(event.date).toLocaleString() : '<strong>TBD</strong>'}</p>
-                  ${getStoredEventCategory(event) ? `<p style="margin: 5px 0; font-size: 11px; color: #94a3b8;">🏷️ ${getStoredEventCategory(event)}</p>` : ''}
-                  ${event.location ? `<p style="margin: 5px 0; font-size: 11px; color: #94a3b8;">📍 ${event.location}</p>` : ''}
-                  <p style="font-size: 11px; color: #64748b; margin-top: 8px;">${event.description || 'No description'}</p>
-                  ${isPast ? '<p style="font-size: 10px; color: #ef4444; margin-top: 5px;"><strong>PAST EVENT</strong></p>' : ''}
-                </div>
-                <div style="display: flex; gap: 5px; flex-direction: column;">
-                  <button onclick="editEvent(${event.id})" style="background: var(--blue); border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;">Edit</button>
-                  <button onclick="deleteEvent(${event.id})" style="background: #ef4444; border: none; color: white; padding: 8px 12px; border-radius: 5px; cursor: pointer; white-space: nowrap;">Delete</button>
-                </div>
-              </div>
-            `;
-          }).join('');
-        }
-      }
-
-      // Load photos
-      async function loadPhotos() {
-        try {
-          console.log('Loading photos...');
-          const response = await fetch(`${API_URL}/photos`);
-          const photos = await response.json();
-          console.log('Photos loaded:', photos);
-          allPhotosData = photos;
-
-          // Create event map
-          const eventMap = {};
-          allEventsData.forEach(event => {
-            eventMap[event.id] = event;
-          });
-
-          // Build collection tabs
-          const tabsContainer = document.getElementById('photoEventTabs');
-          tabsContainer.innerHTML = '<button class="photo-tab-btn active" onclick="filterPhotosByEvent(\'all\', this)">All Collections</button>';
-
-          const unassignedPhotos = photos.filter(photo => !photo.event_id);
-          if (unassignedPhotos.length > 0) {
-            tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('unassigned', this)">🗂️ Unassigned (${unassignedPhotos.length})</button>`;
-          }
-
-          allEventsData.forEach(event => {
-            const eventPhotos = photos.filter(p => String(p.event_id) === String(event.id));
-            if (eventPhotos.length > 0) {
-              const icon = getEventKind(event) === 'album' ? '📁' : '📅';
-              tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('event-${event.id}', this)">${icon} ${event.title} (${eventPhotos.length})</button>`;
-            }
-          });
-
-          // Display photos
-          console.log('Displaying photos...');
-          displayPhotos(photos);
-        } catch (error) {
-          console.error('Error loading photos:', error);
-        }
-      }
-
-      // Filter photos by folder key
-      function filterPhotosByEvent(folderKey, button) {
-        currentPhotoEventFilter = folderKey;
-
-        // Update active tab
-        document.querySelectorAll('.photo-tab-btn').forEach(btn => {
-          btn.classList.remove('active');
-        });
-        if (button) {
-          button.classList.add('active');
-        }
-
-        // Filter and display
-        let filteredPhotos = allPhotosData;
-        if (folderKey !== 'all') {
-          if (String(folderKey).startsWith('event-')) {
-            const eventId = String(folderKey).replace('event-', '');
-            filteredPhotos = allPhotosData.filter(p => String(p.event_id) === eventId);
-          } else if (folderKey === 'unassigned') {
-            filteredPhotos = allPhotosData.filter(photo => !photo.event_id);
-          }
-        }
-        displayPhotos(filteredPhotos);
-      }
-
-      // Display photos in grid
-      function displayPhotos(photos) {
-        const grid = document.getElementById('photosGrid');
-        
-        if (photos.length === 0) {
-          grid.innerHTML = '<p style="text-align: center; color: #999; grid-column: 1/-1; padding: 20px;">No photos</p>';
-          return;
-        }
-
-        // Create event map
-        const eventMap = {};
-        allEventsData.forEach(event => {
-          eventMap[event.id] = event;
-        });
-
-        grid.innerHTML = photos.map(photo => {
-          // Handle both Supabase URLs and local paths
-          const photoUrl = photo.photo_url.startsWith('http') 
-            ? photo.photo_url 
-            : `${API_ORIGIN}${photo.photo_url}`;
-          return `
-          <div class="photo-thumbnail">
-            <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" onclick="window.open('${photoUrl}')">
-            <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
-            <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
-            <div class="photo-thumbnail-info">
-              ${photo.event_id ? `<div>${getEventKind(eventMap[photo.event_id] || {}) === 'album' ? '📁' : '📅'} ${(eventMap[photo.event_id] && eventMap[photo.event_id].title) || 'Event/Album'}</div>` : '<div>🗂️ Unassigned</div>'}
-              ${photo.member_tag ? `<div>👤 ${photo.member_tag}</div>` : ''}
-              ${photo.caption ? `<div>${photo.caption}</div>` : ''}
-            </div>
-          </div>
-        `;
-        }).join('');
-      }
-
-      // Open edit photo modal
-      function openEditPhotoModal(photoId) {
-        const photo = allPhotosData.find(p => p.id === photoId);
-        if (!photo) return;
-
-        editingPhotoId = photoId;
-
-        // Populate form
-        document.getElementById('editPhotoCaption').value = photo.caption || '';
-        document.getElementById('editPhotoMember').value = photo.member_tag || 'Group';
-        document.getElementById('editPhotoEvent').value = photo.event_id || '';
-
-        // Show modal
-        document.getElementById('editPhotoModal').classList.add('active');
-      }
-
-      // Close edit photo modal
-      function closeEditPhotoModal() {
-        document.getElementById('editPhotoModal').classList.remove('active');
-        editingPhotoId = null;
-      }
-
-      function closeAccountSettingsModal() {
-        document.getElementById('accountSettingsModal').classList.remove('active');
-      }
-
-      // Handle edit photo form submission
-      document.getElementById('editPhotoForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const editEventId = document.getElementById('editPhotoEvent').value || null;
-
-        const updatedData = {
-          caption: document.getElementById('editPhotoCaption').value || null,
-          member_tag: document.getElementById('editPhotoMember').value,
-          event_id: editEventId
-        };
-
-        console.log('Updating photo', editingPhotoId, 'with data:', updatedData);
-
-        try {
-          const response = await fetch(`${API_URL}/photos/${editingPhotoId}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${authToken}`
-            },
-            body: JSON.stringify(updatedData)
-          });
-
-          if (response.status === 401) {
-            localStorage.removeItem('authToken');
-            authToken = null;
-            throw new Error('Session expired. Please login again.');
-          }
-
-          if (!response.ok) {
-            const errorMessage = await parseApiError(response, 'Failed to update photo');
-            throw new Error(errorMessage);
-          }
-
-          const result = await response.json();
-          console.log('Photo updated successfully:', result);
-          
-          // Update the cached photo data immediately
-          const photoIndex = allPhotosData.findIndex(p => p.id === editingPhotoId);
-          if (photoIndex !== -1) {
-            allPhotosData[photoIndex] = result;
-          }
-          
-          closeEditPhotoModal();
-          showMessage('photoMessage', 'Photo updated!', 'success');
-          loadPhotos();
-        } catch (error) {
-          console.error('Error updating photo:', error);
-          alert('Error: ' + error.message);
-        }
-      });
-
-      // Close modal when clicking outside
-      document.getElementById('editPhotoModal').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('editPhotoModal')) {
-          closeEditPhotoModal();
-        }
-      });
-
-      document.getElementById('accountSettingsModal').addEventListener('click', (e) => {
-        if (e.target === document.getElementById('accountSettingsModal')) {
-          closeAccountSettingsModal();
-        }
-      });
-
-      // Edit event
-      function editEvent(id) {
-        fetch(`${API_URL}/events`)
-          .then(r => r.json())
-          .then(events => {
-            const event = events.find(e => e.id === id);
-            if (!event) return;
-            editingEventId = id;
-            editingEventKind = getEventKind(event);
-            syncEventKindUI(editingEventKind);
-            
-            document.getElementById('eventTitle').value = event.title;
-            document.getElementById('eventDescription').value = event.description || '';
-            document.getElementById('eventCategory').value = getStoredEventCategory(event) || 'Live';
-            
-            // Parse date and time separately
-            if (event.date) {
-              const dateObj = new Date(event.date);
-              const dateStr = dateObj.toISOString().slice(0, 10); // YYYY-MM-DD
-              const timeStr = dateObj.toISOString().slice(11, 16); // HH:MM
-              document.getElementById('eventDate').value = dateStr;
-              document.getElementById('eventTime').value = timeStr;
-            } else {
-              document.getElementById('eventDate').value = '';
-              document.getElementById('eventTime').value = '';
-            }
-            
-            document.getElementById('eventLocation').value = event.location || '';
-            document.getElementById('eventImage').value = event.image_url || '';
-            document.getElementById('eventCancelEditBtn').classList.remove('hidden');
-            
-            document.querySelector('.panel:first-child').scrollIntoView();
-          });
-      }
-      
-      // Delete event
-      async function deleteEvent(id) {
-        const targetEvent = allEventsData.find(event => event.id === id);
-        const label = targetEvent ? getEventTypeLabel(targetEvent).toLowerCase() : 'event';
-        if (!confirm(`Delete this ${label}?`)) return;
-        try {
-          const response = await fetch(`${API_URL}/events/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
-          if (!response.ok) throw new Error('Failed to delete');
-          loadEvents();
-        } catch (error) {
-          alert('Error: ' + error.message);
-        }
-      }
-
-      // Delete photo
-      async function deletePhoto(id) {
-        if (!confirm('Delete this photo?')) return;
-        try {
-          const response = await fetch(`${API_URL}/photos/${id}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${authToken}` }
-          });
-          if (!response.ok) throw new Error('Failed to delete');
-          loadPhotos();
-        } catch (error) {
-          alert('Error: ' + error.message);
-        }
-      }
-
-      // Show/hide UI
-      function showDashboard() {
-        if (dashboardShown) return; // Prevent multiple calls
-        dashboardShown = true;
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('dashboard').classList.remove('hidden');
-        document.getElementById('accountSettingsBtn').classList.remove('hidden');
-        document.getElementById('logoutBtn').classList.remove('hidden');
-        loadEvents();
-      }
-
-      function showMessage(elementId, message, type) {
-        const el = document.getElementById(elementId);
-        el.textContent = message;
-        el.className = `alert ${type}`;
-        el.classList.remove('hidden');
-        setTimeout(() => el.classList.add('hidden'), 5000);
-      }
-
-      syncEventKindUI('event');
-    </script>
+    <script src="admin.js"></script>
   </body>
 </html>
