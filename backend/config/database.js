@@ -97,13 +97,22 @@ const initDB = async () => {
       CREATE TABLE IF NOT EXISTS photos (
         id SERIAL PRIMARY KEY,
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
-        photo_url VARCHAR(255) NOT NULL,
+        photo_url TEXT NOT NULL,
         caption TEXT,
         member_tag VARCHAR(100),
         uploaded_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+
+    // Migrate photo_url column from VARCHAR(255) to TEXT for long Supabase URLs
+    try {
+      await pool.query(`
+        ALTER TABLE photos ALTER COLUMN photo_url TYPE TEXT;
+      `);
+    } catch (e) {
+      // Column might already be TEXT, safe to ignore
+    }
 
     // Remove photo_category column (migration)
     try {
