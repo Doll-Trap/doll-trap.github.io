@@ -690,32 +690,42 @@ button[type="submit"]:hover {
     overflow: visible;
   }
 
+  /* On mobile sidebar becomes a top horizontal bar — always fully visible */
   .sidebar {
+    position: static !important; /* override sticky */
     width: 100% !important;
     min-width: 100% !important;
-    height: auto;
-    flex-direction: row;
+    height: auto !important;
+    overflow: visible !important;
+    flex-direction: column;
     border-right: none;
     border-bottom: 1px solid var(--border);
-    align-items: stretch;
   }
 
+  /* Hide the desktop ☰ collapse button on mobile */
   .sidebar-toggle {
-    border-bottom: none;
-    border-right: 1px solid var(--border);
-    width: auto;
-    flex-shrink: 0;
-    padding: 14px 16px;
+    display: none;
   }
 
+  /* Nav becomes a horizontal scrollable row */
   .sidebar-nav {
     flex-direction: row;
+    flex-wrap: nowrap;
     padding: 6px 8px;
     gap: 4px;
     overflow-x: auto;
     overflow-y: visible;
     align-items: center;
     flex: 1;
+    /* Always show nav regardless of collapsed state */
+    display: flex !important;
+    max-height: none !important;
+  }
+
+  /* Always show labels on mobile */
+  .sidebar-label {
+    opacity: 1 !important;
+    max-width: 160px !important;
   }
 
   .sidebar-nav-btn {
@@ -731,13 +741,9 @@ button[type="submit"]:hover {
     background: rgba(217, 70, 166, 0.15);
   }
 
-  .sidebar.collapsed .sidebar-nav {
+  /* Push Account + Logout inline, remove the vertical spacer */
+  .sidebar-divider {
     display: none;
-  }
-
-  .sidebar.collapsed .sidebar-label {
-    opacity: 1 !important;
-    max-width: 160px !important;
   }
 
   .main-content {
