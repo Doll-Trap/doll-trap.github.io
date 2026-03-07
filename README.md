@@ -2,35 +2,36 @@
 
 A cosplay idol performance group website with admin panel for event and photo management.
 
+Events and albums now share the same `events` table. Records are distinguished with `kind = 'event' | 'album'` so the calendar/home pages only show real events, while the gallery/admin can also manage albums.
+
 ## 📁 Project Structure
 
 ```
 dolltrap.github.io/
-├── frontend/                  # Frontend website files
+├── docs/                     # Frontend website files (GitHub Pages root)
 │   ├── index.html            # Home page
 │   ├── members.html          # Members profile page
 │   ├── calendar.html         # Event calendar
-│   ├── gallery.html          # Photo gallery
-│   ├── admin.html            # Admin panel (events & photo uploads)
-│   └── style.css             # Global styles
+│   ├── gallery.html          # Photo gallery / albums
+│   ├── admin.html            # Admin panel (events, albums, photo uploads)
+│   ├── style.css             # Global site styles
+│   └── admin.css             # Admin panel styles
 │
-├── backend/                   # Node.js Express API server
-│   ├── server.js             # Main server file
-│   ├── package.json          # Dependencies
-│   ├── .env.example          # Environment variables template
-│   ├── Dockerfile            # Docker image configuration
+├── backend/                  # Node.js Express API server
+│   ├── server.js            # Main server file
+│   ├── package.json         # Dependencies
+│   ├── Dockerfile           # Docker image configuration
 │   ├── config/
-│   │   └── database.js       # PostgreSQL connection & setup
+│   │   └── database.js      # PostgreSQL connection & setup / migrations
 │   ├── routes/
-│   │   ├── auth.js           # Admin authentication
-│   │   ├── events.js         # Event CRUD operations
-│   │   └── photos.js         # Photo upload operations
+│   │   ├── auth.js          # Admin authentication
+│   │   ├── events.js        # Event + album CRUD operations
+│   │   └── photos.js        # Photo upload and update operations
 │   ├── middleware/
-│   │   └── auth.js           # JWT verification middleware
-│   └── uploads/              # User uploaded files storage
+│   │   └── auth.js          # JWT verification middleware
+│   └── uploads/             # Local upload mount path (legacy / optional)
 │
 ├── docker-compose.yml        # Docker Compose configuration (PostgreSQL + API)
-├── .env.example              # Root environment variables
 ├── images/                   # Static images
 │   ├── xama/                 # XAMA event photos
 │   └── SpFes/                # Spring Festival event photos
@@ -41,10 +42,10 @@ dolltrap.github.io/
 ## 🚀 Quick Start
 
 ### Frontend (GitHub Pages)
-The frontend files are in the `frontend/` folder. They're static HTML/CSS/JS files that serve as your website.
+The frontend files are in the `docs/` folder. They are static HTML/CSS/JS files served by GitHub Pages.
 
 **To use as GitHub Pages:**
-1. Add frontend files to your GitHub Pages repository
+1. Push the repository with `docs/` enabled for GitHub Pages
 2. They will be served as a static site at `https://yourusername.github.io`
 
 ### Backend Setup (with Docker)
@@ -144,8 +145,10 @@ Access the admin panel at `/admin.html` (when running locally).
 **Features:**
 - 🔐 Secure login with JWT tokens
 - 📅 Create, edit, and delete events
+- 🗂️ Create albums stored in the same `events` table
 - 📸 Upload photos with drag-and-drop
-- 🏷️ Associate photos with events
+- 🏷️ Associate photos with events or albums
+- 👤 Tag photos by member
 - 🗑️ Manage events and photos
 
 ## 📡 API Endpoints
@@ -155,16 +158,17 @@ Access the admin panel at `/admin.html` (when running locally).
 - `POST /api/auth/register` - Create admin account
 
 ### Events
-- `GET /api/events` - Get all events
-- `GET /api/events/:id` - Get single event
-- `POST /api/events` - Create event (auth required)
-- `PUT /api/events/:id` - Update event (auth required)
-- `DELETE /api/events/:id` - Delete event (auth required)
+- `GET /api/events` - Get all events and albums
+- `GET /api/events/:id` - Get single event/album
+- `POST /api/events` - Create event or album (auth required)
+- `PUT /api/events/:id` - Update event or album (auth required)
+- `DELETE /api/events/:id` - Delete event or album (auth required)
 
 ### Photos
 - `GET /api/photos` - Get all photos
 - `GET /api/photos/event/:event_id` - Get photos for specific event
 - `POST /api/photos` - Upload photo (auth required, multipart/form-data)
+- `PUT /api/photos/:id` - Update photo metadata / linked event (auth required)
 - `DELETE /api/photos/:id` - Delete photo (auth required)
 
 ## 🗄️ Database Schema
@@ -187,14 +191,19 @@ CREATE TABLE events (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT,
-  date TIMESTAMP NOT NULL,
+   date TIMESTAMP,
   location VARCHAR(255),
   image_url VARCHAR(255),
+   event_category VARCHAR(100),
+   kind VARCHAR(20) NOT NULL DEFAULT 'event',
   created_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
 ```
+
+- `kind = 'event'` records appear on the home page and calendar
+- `kind = 'album'` records are hidden from calendar/home and used by the gallery/admin
 
 ### Photos Table
 ```sql
@@ -203,6 +212,7 @@ CREATE TABLE photos (
   event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
   photo_url VARCHAR(255) NOT NULL,
   caption TEXT,
+   member_tag VARCHAR(100),
   uploaded_by INTEGER REFERENCES users(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 )
@@ -236,7 +246,7 @@ Edit `backend/config/database.js` to customize database setup.
 Edit `backend/routes/photos.js` to modify:
 - File size limits (default: 50MB)
 - Allowed file types (JPEG, PNG, GIF, WebP)
-- Storage location
+- Supabase Storage upload behavior
 
 ### CORS Settings
 Edit `backend/server.js` to configure CORS for different domains in production.
@@ -258,7 +268,7 @@ All necessary database tables for game features are pre-created.
 ## 🚢 Deployment
 
 ### Frontend (GitHub Pages)
-- Push frontend files to your GitHub Pages repository
+- Push the repository with `docs/` configured as the Pages source
 - No additional setup needed
 
 ### Backend Deployment (Docker)
@@ -320,7 +330,7 @@ docker run -p 5000:5000 \
 - [ ] Configure CORS for production domain
 - [ ] Setup HTTPS/SSL certificate
 - [ ] Configure database backups
-- [ ] Use cloud storage (AWS S3, Cloudinary) instead of local uploads
+- [x] Use cloud storage for uploads (Supabase Storage)
 - [ ] Setup monitoring and logging
 - [ ] Add rate limiting
 - [ ] Implement input validation
@@ -393,7 +403,8 @@ kill -9 <PID>
 - Browser must be on same origin or CORS must be enabled
 
 ### File uploads failing
-- Check `backend/uploads/` directory exists and is writable
+- Check Supabase environment variables are set correctly
+- Verify the `doll-trap` storage bucket exists
 - Verify file size is under 50MB limit
 - Check file type is allowed (JPEG, PNG, GIF, WebP)
 

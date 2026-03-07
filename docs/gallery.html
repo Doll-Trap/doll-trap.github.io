@@ -8,11 +8,6 @@
   </head>
 
   <body>
-    <!-- Header -->
-    <header>
-      DOLL TRAP
-    </header>
-
     <!-- Navigation -->
     <nav>
       <a href="index.html">Home</a>
@@ -20,6 +15,7 @@
       <a href="calendar.html">Calendar</a>
       <a href="gallery.html">Gallery</a>
       <a href="#contact">Contact</a>
+      <a id="loginNavBtn" href="admin.html">Admin Login</a>
     </nav>
 
     <!-- Gallery Section -->
@@ -47,60 +43,153 @@
         <div id="albumGrid" class="gallery-grid"></div>
       </div>
 
-
-    <!-- Footer -->
-    <footer>
-      Follow us on 
-      <a href="YOUR_INSTAGRAM_URL_HERE" target="_blank" rel="noopener noreferrer">Instagram</a> / 
-      <a href="YOUR_XIAOHONGSHU_URL_HERE" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
-      <a href="YOUR_YOUTUBE_URL_HERE" target="_blank" rel="noopener noreferrer">YouTube</a>
-    </footer>
+      <footer>
+        Follow Doll Trap on
+        <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a>
+        <span>·</span>
+        <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">Xiaohongshu</a>
+        <span>·</span>
+        <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
+      </footer>
 
     <!-- Image Zoom Modal -->
     <div id="imageModal" class="image-modal">
       <span class="close">&times;</span>
+      <button id="modalPrevBtn" class="image-modal-nav image-modal-prev" type="button" aria-label="Previous image">‹</button>
       <img id="modalImage" src="" alt="Zoomed Image">
+      <button id="modalNextBtn" class="image-modal-nav image-modal-next" type="button" aria-label="Next image">›</button>
     </div>
 
     <script>
       const API_URL = 'https://doll-trap-github-io.onrender.com/api';
       const API_ORIGIN = API_URL.replace('/api', '');
+      const authToken = localStorage.getItem('authToken');
+      let currentModalPhotos = [];
+      let currentModalIndex = 0;
+
+      function updateAdminLinkState() {
+        const loginButton = document.getElementById('loginNavBtn');
+        if (!loginButton) return;
+
+        if (authToken) {
+          loginButton.textContent = 'Admin Dashboard';
+          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else {
+          loginButton.textContent = 'Admin Login';
+          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
 
       let allPhotos = [];
       let allEvents = [];
-      let allFolders = [];
       let currentMemberFilter = '';
+
+      function getEventKind(event) {
+        return event.kind || (event.date ? 'event' : 'album');
+      }
+
+      function getCollectionTypeLabel(event) {
+        return getEventKind(event) === 'album' ? 'Album' : 'Event';
+      }
 
       function resolvePhotoUrl(photo) {
         return photo.photo_url.startsWith('http') ? photo.photo_url : `${API_ORIGIN}${photo.photo_url}`;
       }
 
-      function setupImageModal() {
+      function getAlbumCover(event, photos) {
+        if (photos.length > 0) {
+          return resolvePhotoUrl(photos[0]);
+        }
+
+        if (event.image_url) {
+          return event.image_url.startsWith('http') ? event.image_url : `${API_ORIGIN}${event.image_url}`;
+        }
+
+        return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+            <defs>
+              <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+                <stop offset="0%" stop-color="#1e3a8a"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+            </defs>
+            <rect width="800" height="600" fill="url(#bg)"/>
+            <text x="400" y="285" text-anchor="middle" fill="white" font-family="Arial, sans-serif" font-size="38" font-weight="bold">${event.title || 'Album'}</text>
+            <text x="400" y="335" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-family="Arial, sans-serif" font-size="24">No photos yet</text>
+          </svg>
+        `)}`;
+      }
+
+      function showModalPhoto(index) {
         const modal = document.getElementById('imageModal');
         const modalImg = document.getElementById('modalImage');
-        const closeBtn = document.querySelector('.close');
-        const galleryImages = document.querySelectorAll('.gallery-item img');
 
-        galleryImages.forEach(img => {
-          img.addEventListener('click', () => {
-            modal.style.display = 'block';
-            modalImg.src = img.src;
-          });
+        if (!currentModalPhotos.length) {
+          return;
+        }
+
+        currentModalIndex = (index + currentModalPhotos.length) % currentModalPhotos.length;
+        modalImg.src = currentModalPhotos[currentModalIndex];
+        modal.style.display = 'block';
+      }
+
+      function openImageModal(index) {
+        showModalPhoto(index);
+      }
+
+      function closeImageModal() {
+        document.getElementById('imageModal').style.display = 'none';
+      }
+
+      function goToPreviousModalPhoto() {
+        showModalPhoto(currentModalIndex - 1);
+      }
+
+      function goToNextModalPhoto() {
+        showModalPhoto(currentModalIndex + 1);
+      }
+
+      function setupImageModal() {
+        const modal = document.getElementById('imageModal');
+        const closeBtn = document.querySelector('.close');
+        const prevBtn = document.getElementById('modalPrevBtn');
+        const nextBtn = document.getElementById('modalNextBtn');
+
+        if (modal.dataset.initialized === 'true') {
+          return;
+        }
+
+        modal.dataset.initialized = 'true';
+
+        closeBtn.addEventListener('click', closeImageModal);
+
+        prevBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          goToPreviousModalPhoto();
         });
 
-        closeBtn.addEventListener('click', () => {
-          modal.style.display = 'none';
+        nextBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          goToNextModalPhoto();
         });
 
         modal.addEventListener('click', (e) => {
           if (e.target === modal) {
-            modal.style.display = 'none';
+            closeImageModal();
           }
         });
 
         document.addEventListener('keydown', (e) => {
+          if (modal.style.display !== 'block') {
+            return;
+          }
+
           if (e.key === 'Escape') {
-            modal.style.display = 'none';
+            closeImageModal();
+          } else if (e.key === 'ArrowLeft') {
+            goToPreviousModalPhoto();
+          } else if (e.key === 'ArrowRight') {
+            goToNextModalPhoto();
           }
         });
       }
@@ -119,43 +208,48 @@
         const folderContainer = document.getElementById('folderContainer');
         const albumView = document.getElementById('albumView');
         albumView.style.display = 'none';
+        folderContainer.style.display = 'grid';
 
         // Apply member filter
         const filteredPhotos = currentMemberFilter 
           ? allPhotos.filter(p => p.member_tag === currentMemberFilter)
           : allPhotos;
 
-        const eventFolders = allEvents
+        const collections = allEvents
           .map(event => {
             const photos = filteredPhotos.filter(p => String(p.event_id) === String(event.id));
-            if (photos.length === 0) return null;
+
+            if (photos.length === 0) {
+              return null;
+            }
+
+            const typeLabel = getCollectionTypeLabel(event);
+            const subtitle = event.event_category || typeLabel;
+
             return {
               key: `event-${event.id}`,
-              type: 'event',
               title: event.title,
-              subtitle: event.event_category || 'Event',
+              subtitle,
+              typeLabel,
               count: photos.length,
-              cover: resolvePhotoUrl(photos[0])
+              cover: getAlbumCover(event, photos)
             };
           })
           .filter(Boolean);
 
-        const customFolders = allFolders
-          .map(folder => {
-            const photos = filteredPhotos.filter(p => String(p.folder_id) === String(folder.id));
-            if (photos.length === 0) return null;
-            return {
-              key: `folder-${folder.id}`,
-              type: 'folder',
-              title: folder.name,
-              subtitle: 'Custom Folder',
-              count: photos.length,
-              cover: resolvePhotoUrl(photos[0])
-            };
-          })
-          .filter(Boolean);
+        const unassignedPhotos = filteredPhotos.filter(photo => !photo.event_id);
+        if (unassignedPhotos.length > 0) {
+          collections.push({
+            key: 'unassigned',
+            title: 'Other Photos',
+            subtitle: 'Unassigned',
+            typeLabel: 'Collection',
+            count: unassignedPhotos.length,
+            cover: resolvePhotoUrl(unassignedPhotos[0])
+          });
+        }
 
-        const folders = [...eventFolders, ...customFolders];
+        const folders = collections;
 
         if (folders.length === 0) {
           folderContainer.innerHTML = '<p style="color:#999; grid-column:1/-1; text-align:center;">No albums yet</p>';
@@ -165,7 +259,7 @@
         folderContainer.innerHTML = folders.map(folder => `
           <div class="gallery-item" style="cursor:pointer;" onclick="openAlbum('${folder.key}')">
             <img src="${folder.cover}" alt="${folder.title}" title="${folder.title}">
-            <p class="photo-member">${folder.title} · ${folder.count}</p>
+            <p class="photo-member">${folder.title}</p>
           </div>
         `).join('');
       }
@@ -190,25 +284,25 @@
           const eventId = key.replace('event-', '');
           const event = allEvents.find(e => String(e.id) === eventId);
           photos = filteredPhotos.filter(p => String(p.event_id) === eventId);
-          title = event?.title || 'Event Album';
-          meta = `Event · ${event?.event_category || 'Event'} · ${photos.length} photos`;
-        } else {
-          const folderId = key.replace('folder-', '');
-          const folder = allFolders.find(f => String(f.id) === folderId);
-          photos = filteredPhotos.filter(p => String(p.folder_id) === folderId);
-          title = folder?.name || 'Folder Album';
-          meta = `Custom Folder · ${photos.length} photos`;
+          title = event?.title || 'Album';
+          meta = `${getCollectionTypeLabel(event || {})} · ${event?.event_category || 'General'} · ${photos.length} photos`;
+        } else if (key === 'unassigned') {
+          photos = filteredPhotos.filter(photo => !photo.event_id);
+          title = 'Other Photos';
+          meta = `Collection · ${photos.length} photos`;
         }
 
         albumTitle.textContent = title;
         albumMeta.textContent = meta;
+        currentModalPhotos = photos.map(photo => resolvePhotoUrl(photo));
+        currentModalIndex = 0;
 
-        albumGrid.innerHTML = photos.map(photo => {
+        albumGrid.innerHTML = photos.map((photo, index) => {
           const url = resolvePhotoUrl(photo);
           const memberTag = photo.member_tag || 'Group';
           return `
             <div class="gallery-item">
-              <img src="${url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}">
+              <img src="${url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}" onclick="openImageModal(${index})">
               <p class="photo-member">${memberTag}</p>
             </div>
           `;
@@ -226,15 +320,13 @@
 
       async function loadGallery() {
         try {
-          const [photosResponse, eventsResponse, foldersResponse] = await Promise.all([
+          const [photosResponse, eventsResponse] = await Promise.all([
             fetch(`${API_URL}/photos`),
-            fetch(`${API_URL}/events`),
-            fetch(`${API_URL}/photo-folders`)
+            fetch(`${API_URL}/events`)
           ]);
 
           allPhotos = await photosResponse.json();
           allEvents = await eventsResponse.json();
-          allFolders = await foldersResponse.json();
 
           renderFolderCards();
           setupImageModal();
@@ -244,6 +336,7 @@
         }
       }
 
+      updateAdminLinkState();
       loadGallery();
     </script>
   </body>

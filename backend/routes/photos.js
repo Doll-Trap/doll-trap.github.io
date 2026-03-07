@@ -40,10 +40,9 @@ const upload = multer({
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT p.id, p.event_id, p.folder_id, p.photo_url, p.caption, p.member_tag,
-             p.uploaded_by, p.created_at, f.name AS folder_name
+      SELECT p.id, p.event_id, p.photo_url, p.caption, p.member_tag,
+             p.uploaded_by, p.created_at
       FROM photos p
-      LEFT JOIN photo_folders f ON p.folder_id = f.id
       ORDER BY p.created_at DESC
     `);
     res.json(result.rows);
@@ -56,10 +55,9 @@ router.get('/', async (req, res) => {
 router.get('/event/:event_id', async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT p.id, p.event_id, p.folder_id, p.photo_url, p.caption, p.member_tag,
-              p.uploaded_by, p.created_at, f.name AS folder_name
+      `SELECT p.id, p.event_id, p.photo_url, p.caption, p.member_tag,
+              p.uploaded_by, p.created_at
        FROM photos p
-       LEFT JOIN photo_folders f ON p.folder_id = f.id
        WHERE p.event_id = $1
        ORDER BY p.created_at DESC`,
       [req.params.event_id]
@@ -77,12 +75,10 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    const { event_id, folder_id, caption, member_tag } = req.body;
+    const { event_id, caption, member_tag } = req.body;
     const resolvedEventId = event_id || null;
-    const resolvedFolderId = resolvedEventId ? null : (folder_id || null);
     console.log('Uploading photo with data:', {
       event_id,
-      folder_id,
       caption,
       member_tag
     });
@@ -113,19 +109,10 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 
     console.log('Uploaded to Supabase:', publicUrl);
 
-    // Auto-assign to Others folder if no event or folder specified
-    let finalFolderId = resolvedFolderId;
-    if (!resolvedEventId && !resolvedFolderId) {
-      const othersFolder = await pool.query(`SELECT id FROM photo_folders WHERE name = 'Others'`);
-      if (othersFolder.rows.length > 0) {
-        finalFolderId = othersFolder.rows[0].id;
-      }
-    }
-
     // Save to database
     const result = await pool.query(
-      'INSERT INTO photos (event_id, folder_id, photo_url, caption, member_tag, uploaded_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [resolvedEventId, finalFolderId, publicUrl, caption || null, member_tag || 'Group', req.user.id]
+      'INSERT INTO photos (event_id, photo_url, caption, member_tag, uploaded_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [resolvedEventId, publicUrl, caption || null, member_tag || 'Group', req.user.id]
     );
 
     res.status(201).json(result.rows[0]);
@@ -138,19 +125,17 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
 // Update photo (admin only)
 router.put('/:id', authMiddleware, async (req, res) => {
   try {
-    const { caption, member_tag, event_id, folder_id } = req.body;
+    const { caption, member_tag, event_id } = req.body;
     const resolvedEventId = event_id || null;
-    const resolvedFolderId = resolvedEventId ? null : (folder_id || null);
     console.log('Updating photo', req.params.id, 'with data:', {
       caption,
       member_tag,
-      event_id: resolvedEventId,
-      folder_id: resolvedFolderId
+      event_id: resolvedEventId
     });
 
     const result = await pool.query(
-      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3, folder_id = $4 WHERE id = $5 RETURNING *',
-      [caption || null, member_tag || 'Group', resolvedEventId, resolvedFolderId, req.params.id]
+      'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3 WHERE id = $4 RETURNING *',
+      [caption || null, member_tag || 'Group', resolvedEventId, req.params.id]
     );
 
     if (result.rows.length === 0) {

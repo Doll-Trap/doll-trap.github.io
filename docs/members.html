@@ -8,11 +8,6 @@
   </head>
 
   <body>
-    <!-- Header -->
-    <header>
-      DOLL TRAP
-    </header>
-
     <!-- Navigation -->
     <nav>
       <a href="index.html">Home</a>
@@ -20,6 +15,7 @@
       <a href="calendar.html">Calendar</a>
       <a href="gallery.html">Gallery</a>
       <a href="#contact">Contact</a>
+      <a id="loginNavBtn" href="admin.html">Admin Login</a>
     </nav>
 
     <!-- Members Section -->
@@ -43,15 +39,31 @@
       </div>
     </div>
 
-    <!-- Footer -->
     <footer>
-      Follow us on 
-      <a href="YOUR_INSTAGRAM_URL_HERE" target="_blank" rel="noopener noreferrer">Instagram</a> / 
-      <a href="YOUR_XIAOHONGSHU_URL_HERE" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
-      <a href="YOUR_YOUTUBE_URL_HERE" target="_blank" rel="noopener noreferrer">YouTube</a>
+      Follow Doll Trap on
+      <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <span>·</span>
+      <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">Xiaohongshu</a>
+      <span>·</span>
+      <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
     <script>
+      const authToken = localStorage.getItem('authToken');
+
+      function updateAdminLinkState() {
+        const loginButton = document.getElementById('loginNavBtn');
+        if (!loginButton) return;
+
+        if (authToken) {
+          loginButton.textContent = 'Admin Dashboard';
+          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else {
+          loginButton.textContent = 'Admin Login';
+          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
+
       // Member data
       const membersData = [
         {
@@ -139,6 +151,7 @@
       }
 
       // Initialize
+      updateAdminLinkState();
       renderMembers();
 
       // Navigation buttons

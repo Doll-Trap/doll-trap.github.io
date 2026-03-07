@@ -11,7 +11,11 @@
     <!-- Navigation -->
     <div class="navbar">
       <h1>🎀 Doll Trap Admin</h1>
-      <button id="logoutBtn" class="hidden">Logout</button>
+      <div class="navbar-actions">
+        <a href="index.html" class="navbar-home-link">← Back to Home</a>
+        <button id="accountSettingsBtn" class="hidden" type="button">Account</button>
+        <button id="logoutBtn" class="hidden">Logout</button>
+      </div>
     </div>
 
     <div class="container">
@@ -48,6 +52,13 @@
               <h2>📅 Create Event</h2>
               <form id="eventForm">
                 <div class="form-group">
+                  <label>Type</label>
+                  <select id="eventKind" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <option value="event">Event</option>
+                    <option value="album">Album</option>
+                  </select>
+                </div>
+                <div class="form-group">
                   <label>Event Title</label>
                   <input type="text" id="eventTitle" required>
                 </div>
@@ -55,10 +66,11 @@
                   <label>Description</label>
                   <textarea id="eventDescription" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text); resize: vertical;" rows="3"></textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="eventCategoryGroup">
                   <label>Category</label>
                   <select id="eventCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
                     <option value="Live">Live</option>
+                    <option value="Performance">Performance</option>
                     <option value="Community Event">Community Event</option>
                     <option value="Convention">Convention</option>
                     <option value="Workshop">Workshop</option>
@@ -66,11 +78,11 @@
                     <option value="Other">Other</option>
                   </select>
                 </div>
-                <div class="form-group">
-                  <label>Date <span style="color: #ec4899;">*</span></label>
-                  <input type="date" id="eventDate" required>
+                <div class="form-group" id="eventDateGroup">
+                  <label>Date <span id="eventDateHint" style="color: #94a3b8;">(required for events)</span></label>
+                  <input type="date" id="eventDate">
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="eventTimeGroup">
                   <label>Time <span style="color: #94a3b8;">(optional)</span></label>
                   <input type="time" id="eventTime">
                 </div>
@@ -109,19 +121,13 @@
               <h2>📸 Upload Photos</h2>
               <form id="photoForm">
                 <div class="form-group">
-                  <label>Event Folder (Optional)</label>
+                  <label>Event / Album (Optional)</label>
                   <select id="photoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                    <option value="">No Event</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Custom Folder (Optional)</label>
-                  <select id="photoFolder" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                    <option value="">No Custom Folder</option>
+                    <option value="">No Event/Album</option>
                   </select>
                   <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <input type="text" id="newFolderName" placeholder="Create new folder" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                    <button type="button" id="createFolderBtn" style="white-space: nowrap; padding: 10px 14px;">Create</button>
+                    <input type="text" id="newFolderName" placeholder="Create new album (no date needed)" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                    <button type="button" id="createFolderBtn" style="white-space: nowrap; padding: 10px 14px;">Create Album</button>
                   </div>
                 </div>
                 <div class="form-group">
@@ -179,15 +185,9 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Event Folder</label>
+              <label>Event / Album</label>
               <select id="editPhotoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                <option value="">No Event</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Custom Folder</label>
-              <select id="editPhotoFolder" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                <option value="">No Custom Folder</option>
+                <option value="">No Event/Album</option>
               </select>
             </div>
             <div style="display: flex; gap: 10px;">
@@ -197,16 +197,42 @@
           </form>
         </div>
       </div>
+
+      <div id="accountSettingsModal" class="edit-modal">
+        <div class="edit-modal-content">
+          <div class="edit-modal-header">
+            <h2>Account Settings</h2>
+            <button class="edit-modal-close" type="button" onclick="closeAccountSettingsModal()">&times;</button>
+          </div>
+          <form id="changePasswordForm" class="account-form">
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" id="currentPassword" required>
+            </div>
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" id="newPassword" minlength="8" required>
+            </div>
+            <div class="form-group">
+              <label>Confirm New Password</label>
+              <input type="password" id="confirmNewPassword" minlength="8" required>
+            </div>
+            <button type="submit">Update Password</button>
+          </form>
+          <p id="passwordMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+        </div>
+      </div>
     </div>
 
     <script>
       const API_URL = 'https://doll-trap-github-io.onrender.com/api';
       const API_ORIGIN = API_URL.replace('/api', '');
       let authToken = localStorage.getItem('authToken');
+      let dashboardShown = false;
 
       // Check if already logged in
       if (authToken) {
-        // Verify token is still valid by making a test request
+        showDashboard();
         verifyToken();
       }
       
@@ -220,6 +246,11 @@
           if (response.status === 401) {
             localStorage.removeItem('authToken');
             authToken = null;
+            dashboardShown = false;
+            document.getElementById('dashboard').classList.add('hidden');
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('accountSettingsBtn').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
             return;
           }
 
@@ -260,32 +291,89 @@
       document.getElementById('logoutBtn').addEventListener('click', () => {
         localStorage.removeItem('authToken');
         authToken = null;
+        closeAccountSettingsModal();
         location.reload();
+      });
+
+      document.getElementById('accountSettingsBtn').addEventListener('click', () => {
+        document.getElementById('accountSettingsModal').classList.add('active');
+      });
+
+      document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const currentPassword = document.getElementById('currentPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+        if (newPassword !== confirmNewPassword) {
+          showMessage('passwordMessage', 'New passwords do not match', 'error');
+          return;
+        }
+
+        if (newPassword.length < 8) {
+          showMessage('passwordMessage', 'New password must be at least 8 characters long', 'error');
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_URL}/auth/change-password`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({ currentPassword, newPassword })
+          });
+
+          if (response.status === 401) {
+            localStorage.removeItem('authToken');
+            authToken = null;
+            throw new Error('Session expired or current password is incorrect');
+          }
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to update password');
+          }
+
+          document.getElementById('changePasswordForm').reset();
+          showMessage('passwordMessage', 'Password updated successfully', 'success');
+        } catch (error) {
+          showMessage('passwordMessage', error.message, 'error');
+        }
       });
 
       // Create Event
       document.getElementById('eventForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const isEditing = editingEventId !== null;
+        const eventKind = document.getElementById('eventKind').value || editingEventKind || 'event';
         
         const dateValue = document.getElementById('eventDate').value;
         const timeValue = document.getElementById('eventTime').value;
+
+        if (eventKind === 'event' && !dateValue) {
+          showMessage('eventMessage', 'Date required for events', 'error');
+          return;
+        }
         
-        // Combine date and time, or use just date with 00:00:00 if time is empty
-        let dateString = dateValue;
-        if (timeValue) {
+        let dateString = null;
+        if (dateValue && timeValue) {
           dateString = `${dateValue}T${timeValue}`;
-        } else {
+        } else if (dateValue) {
           dateString = `${dateValue}T00:00:00`;
         }
         
         const event = {
           title: document.getElementById('eventTitle').value,
           description: document.getElementById('eventDescription').value,
-          date: new Date(dateString).toISOString(),
+          date: dateString ? new Date(dateString).toISOString() : null,
           location: document.getElementById('eventLocation').value,
           image_url: document.getElementById('eventImage').value,
-          category: document.getElementById('eventCategory').value
+          event_category: eventKind === 'event' ? document.getElementById('eventCategory').value : null,
+          kind: eventKind
         };
 
         try {
@@ -335,7 +423,6 @@
         }
 
         const eventId = document.getElementById('photoEvent').value;
-        const folderId = document.getElementById('photoFolder').value;
 
         for (let file of files) {
           const formData = new FormData();
@@ -343,8 +430,6 @@
 
           if (eventId) {
             formData.append('event_id', eventId);
-          } else if (folderId) {
-            formData.append('folder_id', folderId);
           }
           
           const memberTag = document.getElementById('photoMember').value;
@@ -386,51 +471,33 @@
         document.getElementById('photoForm').reset();
         await loadPhotos(); // Wait for photos to reload
       });
-
-      // Event and custom folder are mutually exclusive for uploads
-      document.getElementById('photoEvent').addEventListener('change', (e) => {
-        if (e.target.value) {
-          document.getElementById('photoFolder').value = '';
-        }
-      });
-
-      document.getElementById('photoFolder').addEventListener('change', (e) => {
-        if (e.target.value) {
-          document.getElementById('photoEvent').value = '';
-        }
-      });
-
-      // Event and custom folder are mutually exclusive for edits
-      document.getElementById('editPhotoEvent').addEventListener('change', (e) => {
-        if (e.target.value) {
-          document.getElementById('editPhotoFolder').value = '';
-        }
-      });
-
-      document.getElementById('editPhotoFolder').addEventListener('change', (e) => {
-        if (e.target.value) {
-          document.getElementById('editPhotoEvent').value = '';
-        }
-      });
-
-      // Create a new custom folder
+      // Create a new album
       document.getElementById('createFolderBtn').addEventListener('click', async () => {
         const input = document.getElementById('newFolderName');
         const name = input.value.trim();
 
         if (!name) {
-          showMessage('photoMessage', 'Please enter a folder name', 'error');
+          showMessage('photoMessage', 'Please enter an album name', 'error');
           return;
         }
 
         try {
-          const response = await fetch(`${API_URL}/photo-folders`, {
+          // Create album as an event without a date
+          const response = await fetch(`${API_URL}/events`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${authToken}`
             },
-            body: JSON.stringify({ name })
+            body: JSON.stringify({
+              title: name,
+              description: '',
+              date: null,
+              location: null,
+              image_url: null,
+              event_category: null,
+              kind: 'album'
+            })
           });
 
           if (response.status === 401) {
@@ -440,16 +507,15 @@
           }
 
           if (!response.ok) {
-            const errorMessage = await parseApiError(response, 'Failed to create folder');
+            const errorMessage = await parseApiError(response, 'Failed to create album');
             throw new Error(errorMessage);
           }
 
-          const folder = await response.json();
+          const album = await response.json();
           input.value = '';
-          await loadPhotoFolders();
-          document.getElementById('photoFolder').value = folder.id;
-          document.getElementById('photoEvent').value = '';
-          showMessage('photoMessage', `Folder "${folder.name}" created`, 'success');
+          await loadEvents();
+          document.getElementById('photoEvent').value = album.id;
+          showMessage('photoMessage', `Album "${album.title}" created`, 'success');
         } catch (error) {
           showMessage('photoMessage', error.message, 'error');
         }
@@ -509,10 +575,60 @@
 
       let allEventsData = []; // Store all events for filtering
       let allPhotosData = []; // Store all photos
-      let allFoldersData = []; // Store all custom folders
       let currentPhotoEventFilter = 'all'; // Current photo filter
       let editingPhotoId = null; // Current photo being edited
       let editingEventId = null; // Current event being edited
+      let editingEventKind = 'event';
+      const EVENT_CATEGORY_OPTIONS = ['Live', 'Performance', 'Community Event', 'Convention', 'Workshop', 'Collaboration', 'Other'];
+
+      function normalizeEventCategory(value) {
+        if (!value) return null;
+        const normalizedValue = String(value).trim().toLowerCase();
+        const match = EVENT_CATEGORY_OPTIONS.find(option => option.toLowerCase() === normalizedValue);
+        return match || null;
+      }
+
+      function getStoredEventCategory(event) {
+        const directCategory = normalizeEventCategory(event?.event_category || event?.category);
+        if (directCategory) {
+          return directCategory;
+        }
+
+        const descriptionPrefix = event?.description?.split(/\s[-–—]\s/)[0]?.trim();
+        return normalizeEventCategory(descriptionPrefix);
+      }
+
+      function getEventKind(event) {
+        return event.kind || (event.date ? 'event' : 'album');
+      }
+
+      function getEventTypeLabel(event) {
+        return getEventKind(event) === 'album' ? 'Album' : 'Event';
+      }
+
+      function syncEventKindUI(kind) {
+        editingEventKind = kind === 'album' ? 'album' : 'event';
+
+        const isAlbum = editingEventKind === 'album';
+        const categoryGroup = document.getElementById('eventCategoryGroup');
+        const dateGroup = document.getElementById('eventDateGroup');
+        const timeGroup = document.getElementById('eventTimeGroup');
+        const dateHint = document.getElementById('eventDateHint');
+        const submitButton = document.getElementById('eventSubmitBtn');
+
+        document.getElementById('eventKind').value = editingEventKind;
+
+        categoryGroup.style.display = isAlbum ? 'none' : 'block';
+        dateGroup.style.display = 'block';
+        timeGroup.style.display = isAlbum ? 'none' : 'block';
+        dateHint.textContent = isAlbum ? '(leave empty to keep as album)' : '(required for events)';
+
+        if (editingEventId !== null) {
+          submitButton.textContent = isAlbum ? 'Save Album' : 'Save Event';
+        } else {
+          submitButton.textContent = isAlbum ? 'Create Album' : 'Create Event';
+        }
+      }
 
       async function parseApiError(response, fallbackMessage) {
         const contentType = response.headers.get('content-type') || '';
@@ -540,9 +656,13 @@
       function resetEventFormMode() {
         editingEventId = null;
         document.getElementById('eventForm').reset();
-        document.getElementById('eventSubmitBtn').textContent = 'Create Event';
         document.getElementById('eventCancelEditBtn').classList.add('hidden');
+        syncEventKindUI('event');
       }
+
+      document.getElementById('eventKind').addEventListener('change', (e) => {
+        syncEventKindUI(e.target.value);
+      });
 
       // Switch between Events and Photos sections
       function switchSection(section) {
@@ -575,53 +695,28 @@
           // Update upload event select dropdown
           const select = document.getElementById('photoEvent');
           const currentValue = select.value;
-          select.innerHTML = '<option value="">No Event</option>';
+          select.innerHTML = '<option value="">No Event/Album</option>';
           events.forEach(event => {
-            select.innerHTML += `<option value="${event.id}">${event.title}</option>`;
+            const icon = getEventKind(event) === 'album' ? '📁' : '📅';
+            select.innerHTML += `<option value="${event.id}">${icon} ${event.title}</option>`;
           });
           select.value = currentValue;
 
           // Update edit event select dropdown
           const editEventSelect = document.getElementById('editPhotoEvent');
           const currentEditEventValue = editEventSelect.value;
-          editEventSelect.innerHTML = '<option value="">No Event</option>';
+          editEventSelect.innerHTML = '<option value="">No Event/Album</option>';
           events.forEach(event => {
-            editEventSelect.innerHTML += `<option value="${event.id}">${event.title}</option>`;
+            const icon = getEventKind(event) === 'album' ? '📁' : '📅';
+            editEventSelect.innerHTML += `<option value="${event.id}">${icon} ${event.title}</option>`;
           });
           editEventSelect.value = currentEditEventValue;
 
           // Display all events in "All Events" panel with filter
           filterEvents('all');
-          await loadPhotoFolders();
           await loadPhotos();
         } catch (error) {
           console.error('Error loading events:', error);
-        }
-      }
-
-      async function loadPhotoFolders() {
-        try {
-          const response = await fetch(`${API_URL}/photo-folders`);
-          const folders = await response.json();
-          allFoldersData = Array.isArray(folders) ? folders : [];
-
-          const uploadFolderSelect = document.getElementById('photoFolder');
-          const currentUploadValue = uploadFolderSelect.value;
-          uploadFolderSelect.innerHTML = '<option value="">No Custom Folder</option>';
-          allFoldersData.forEach(folder => {
-            uploadFolderSelect.innerHTML += `<option value="${folder.id}">${folder.name}</option>`;
-          });
-          uploadFolderSelect.value = currentUploadValue;
-
-          const editFolderSelect = document.getElementById('editPhotoFolder');
-          const currentEditValue = editFolderSelect.value;
-          editFolderSelect.innerHTML = '<option value="">No Custom Folder</option>';
-          allFoldersData.forEach(folder => {
-            editFolderSelect.innerHTML += `<option value="${folder.id}">${folder.name}</option>`;
-          });
-          editFolderSelect.value = currentEditValue;
-        } catch (error) {
-          console.error('Error loading folders:', error);
         }
       }
 
@@ -634,14 +729,14 @@
 
         if (type === 'upcoming') {
           filteredEvents = allEventsData.filter(event => {
-            if (!event.date) return false; // Exclude TBD events
+            if (getEventKind(event) !== 'event' || !event.date) return false;
             const eventDate = new Date(event.date);
             eventDate.setHours(0, 0, 0, 0);
             return eventDate >= now;
           });
         } else if (type === 'past') {
           filteredEvents = allEventsData.filter(event => {
-            if (!event.date) return false; // Exclude TBD events
+            if (getEventKind(event) !== 'event' || !event.date) return false;
             const eventDate = new Date(event.date);
             eventDate.setHours(0, 0, 0, 0);
             return eventDate < now;
@@ -660,13 +755,15 @@
         } else {
           allList.innerHTML = filteredEvents.map(event => {
             const eventDate = event.date ? new Date(event.date) : null;
-            const isPast = eventDate && eventDate < now;
+            const eventType = getEventTypeLabel(event);
+            const isPast = getEventKind(event) === 'event' && eventDate && eventDate < now;
             
             return `
               <div class="list-item">
                 <div class="list-item-info">
-                  <h4>${event.title}</h4>
+                  <h4>${event.title} <span style="font-size: 11px; color: #94a3b8; font-weight: normal;">· ${eventType}</span></h4>
                   <p style="margin: 5px 0;">${event.date ? new Date(event.date).toLocaleString() : '<strong>TBD</strong>'}</p>
+                  ${getStoredEventCategory(event) ? `<p style="margin: 5px 0; font-size: 11px; color: #94a3b8;">🏷️ ${getStoredEventCategory(event)}</p>` : ''}
                   ${event.location ? `<p style="margin: 5px 0; font-size: 11px; color: #94a3b8;">📍 ${event.location}</p>` : ''}
                   <p style="font-size: 11px; color: #64748b; margin-top: 8px;">${event.description || 'No description'}</p>
                   ${isPast ? '<p style="font-size: 10px; color: #ef4444; margin-top: 5px;"><strong>PAST EVENT</strong></p>' : ''}
@@ -696,21 +793,20 @@
             eventMap[event.id] = event;
           });
 
-          // Build folder-level tabs (events + custom folders)
+          // Build collection tabs
           const tabsContainer = document.getElementById('photoEventTabs');
-          tabsContainer.innerHTML = '<button class="photo-tab-btn active" onclick="filterPhotosByEvent(\'all\')">All Folders</button>';
+          tabsContainer.innerHTML = '<button class="photo-tab-btn active" onclick="filterPhotosByEvent(\'all\', this)">All Collections</button>';
+
+          const unassignedPhotos = photos.filter(photo => !photo.event_id);
+          if (unassignedPhotos.length > 0) {
+            tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('unassigned', this)">🗂️ Unassigned (${unassignedPhotos.length})</button>`;
+          }
 
           allEventsData.forEach(event => {
             const eventPhotos = photos.filter(p => String(p.event_id) === String(event.id));
             if (eventPhotos.length > 0) {
-              tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('event-${event.id}')">📅 ${event.title} (${eventPhotos.length})</button>`;
-            }
-          });
-
-          allFoldersData.forEach(folder => {
-            const folderPhotos = photos.filter(p => String(p.folder_id) === String(folder.id));
-            if (folderPhotos.length > 0) {
-              tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('folder-${folder.id}')">📁 ${folder.name} (${folderPhotos.length})</button>`;
+              const icon = getEventKind(event) === 'album' ? '📁' : '📅';
+              tabsContainer.innerHTML += `<button class="photo-tab-btn" onclick="filterPhotosByEvent('event-${event.id}', this)">${icon} ${event.title} (${eventPhotos.length})</button>`;
             }
           });
 
@@ -723,14 +819,16 @@
       }
 
       // Filter photos by folder key
-      function filterPhotosByEvent(folderKey) {
+      function filterPhotosByEvent(folderKey, button) {
         currentPhotoEventFilter = folderKey;
 
         // Update active tab
         document.querySelectorAll('.photo-tab-btn').forEach(btn => {
           btn.classList.remove('active');
         });
-        event.target.classList.add('active');
+        if (button) {
+          button.classList.add('active');
+        }
 
         // Filter and display
         let filteredPhotos = allPhotosData;
@@ -738,9 +836,8 @@
           if (String(folderKey).startsWith('event-')) {
             const eventId = String(folderKey).replace('event-', '');
             filteredPhotos = allPhotosData.filter(p => String(p.event_id) === eventId);
-          } else if (String(folderKey).startsWith('folder-')) {
-            const folderId = String(folderKey).replace('folder-', '');
-            filteredPhotos = allPhotosData.filter(p => String(p.folder_id) === folderId);
+          } else if (folderKey === 'unassigned') {
+            filteredPhotos = allPhotosData.filter(photo => !photo.event_id);
           }
         }
         displayPhotos(filteredPhotos);
@@ -758,7 +855,7 @@
         // Create event map
         const eventMap = {};
         allEventsData.forEach(event => {
-          eventMap[event.id] = event.title;
+          eventMap[event.id] = event;
         });
 
         grid.innerHTML = photos.map(photo => {
@@ -772,8 +869,7 @@
             <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
             <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
             <div class="photo-thumbnail-info">
-              ${photo.event_id ? `<div>📅 ${eventMap[photo.event_id] || 'Event'}</div>` : ''}
-              ${photo.folder_name ? `<div>📁 ${photo.folder_name}</div>` : ''}
+              ${photo.event_id ? `<div>${getEventKind(eventMap[photo.event_id] || {}) === 'album' ? '📁' : '📅'} ${(eventMap[photo.event_id] && eventMap[photo.event_id].title) || 'Event/Album'}</div>` : '<div>🗂️ Unassigned</div>'}
               ${photo.member_tag ? `<div>👤 ${photo.member_tag}</div>` : ''}
               ${photo.caption ? `<div>${photo.caption}</div>` : ''}
             </div>
@@ -793,7 +889,6 @@
         document.getElementById('editPhotoCaption').value = photo.caption || '';
         document.getElementById('editPhotoMember').value = photo.member_tag || 'Group';
         document.getElementById('editPhotoEvent').value = photo.event_id || '';
-        document.getElementById('editPhotoFolder').value = photo.folder_id || '';
 
         // Show modal
         document.getElementById('editPhotoModal').classList.add('active');
@@ -805,18 +900,20 @@
         editingPhotoId = null;
       }
 
+      function closeAccountSettingsModal() {
+        document.getElementById('accountSettingsModal').classList.remove('active');
+      }
+
       // Handle edit photo form submission
       document.getElementById('editPhotoForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const editEventId = document.getElementById('editPhotoEvent').value || null;
-        const editFolderId = editEventId ? null : (document.getElementById('editPhotoFolder').value || null);
 
         const updatedData = {
           caption: document.getElementById('editPhotoCaption').value || null,
           member_tag: document.getElementById('editPhotoMember').value,
-          event_id: editEventId,
-          folder_id: editFolderId
+          event_id: editEventId
         };
 
         console.log('Updating photo', editingPhotoId, 'with data:', updatedData);
@@ -867,6 +964,12 @@
         }
       });
 
+      document.getElementById('accountSettingsModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('accountSettingsModal')) {
+          closeAccountSettingsModal();
+        }
+      });
+
       // Edit event
       function editEvent(id) {
         fetch(`${API_URL}/events`)
@@ -875,10 +978,12 @@
             const event = events.find(e => e.id === id);
             if (!event) return;
             editingEventId = id;
+            editingEventKind = getEventKind(event);
+            syncEventKindUI(editingEventKind);
             
             document.getElementById('eventTitle').value = event.title;
             document.getElementById('eventDescription').value = event.description || '';
-            document.getElementById('eventCategory').value = event.event_category || event.category || 'Live';
+            document.getElementById('eventCategory').value = getStoredEventCategory(event) || 'Live';
             
             // Parse date and time separately
             if (event.date) {
@@ -894,7 +999,6 @@
             
             document.getElementById('eventLocation').value = event.location || '';
             document.getElementById('eventImage').value = event.image_url || '';
-            document.getElementById('eventSubmitBtn').textContent = 'Save Changes';
             document.getElementById('eventCancelEditBtn').classList.remove('hidden');
             
             document.querySelector('.panel:first-child').scrollIntoView();
@@ -903,7 +1007,9 @@
       
       // Delete event
       async function deleteEvent(id) {
-        if (!confirm('Delete this event?')) return;
+        const targetEvent = allEventsData.find(event => event.id === id);
+        const label = targetEvent ? getEventTypeLabel(targetEvent).toLowerCase() : 'event';
+        if (!confirm(`Delete this ${label}?`)) return;
         try {
           const response = await fetch(`${API_URL}/events/${id}`, {
             method: 'DELETE',
@@ -933,8 +1039,11 @@
 
       // Show/hide UI
       function showDashboard() {
+        if (dashboardShown) return; // Prevent multiple calls
+        dashboardShown = true;
         document.getElementById('loginForm').classList.add('hidden');
         document.getElementById('dashboard').classList.remove('hidden');
+        document.getElementById('accountSettingsBtn').classList.remove('hidden');
         document.getElementById('logoutBtn').classList.remove('hidden');
         loadEvents();
       }
@@ -946,6 +1055,8 @@
         el.classList.remove('hidden');
         setTimeout(() => el.classList.add('hidden'), 5000);
       }
+
+      syncEventKindUI('event');
     </script>
   </body>
 </html>

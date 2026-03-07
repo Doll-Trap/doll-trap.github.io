@@ -8,11 +8,6 @@
   </head>
 
   <body>
-    <!-- Header -->
-    <header>
-      DOLL TRAP
-    </header>
-
     <!-- Navigation -->
     <nav>
       <a href="index.html">Home</a>
@@ -20,32 +15,16 @@
       <a href="calendar.html">Calendar</a>
       <a href="gallery.html">Gallery</a>
       <a href="#contact">Contact</a>
-      <button id="loginNavBtn" onclick="openLoginModal()" style="background: linear-gradient(135deg, #d946a6, #ec4899); border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; font-weight: bold;">Login</button>
+      <a id="loginNavBtn" href="admin.html">Admin Login</a>
     </nav>
-    
-    <!-- Login Modal -->
-    <div id="loginModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center;">
-      <div style="background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 40px; max-width: 400px; color: #e2e8f0; position: relative;">
-        <h2 style="color: #ec4899; margin-bottom: 20px;">Login</h2>
-        <form id="homeLoginForm" style="display: flex; flex-direction: column; gap: 15px;">
-          <div>
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Username</label>
-            <input type="text" id="homeUsername" required style="width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 5px; background: #0f172a; color: #e2e8f0;">
-          </div>
-          <div>
-            <label style="display: block; margin-bottom: 5px; font-weight: bold;">Password</label>
-            <input type="password" id="homePassword" required style="width: 100%; padding: 10px; border: 1px solid #334155; border-radius: 5px; background: #0f172a; color: #e2e8f0;">
-          </div>
-          <button type="submit" style="background: linear-gradient(135deg, #d946a6, #ec4899); border: none; color: white; padding: 12px; border-radius: 5px; cursor: pointer; font-weight: bold;">Login</button>
-          <p id="homeLoginError" style="color: #fca5a5; text-align: center; display: none; margin: 0;"></p>
-        </form>
-        <button onclick="closeLoginModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; color: #e2e8f0; font-size: 24px; cursor: pointer;">×</button>
-      </div>
-    </div>
 
     <!-- Hero Section -->
     <div class="hero" id="heroSection">
-      Seattle Local Undergraound Idol Group
+      <div class="hero-content">
+        <p class="hero-kicker">Seattle underground idol group</p>
+        <h1 class="hero-logo">Doll Trap</h1>
+        <p class="hero-tagline">Cute, dreamy, and dramatic stage</p>
+      </div>
     </div>
 
     <!-- About Section -->
@@ -64,17 +43,17 @@
         <div class="member">
           <img src="https://via.placeholder.com/200" alt="Buzzly">
           <h3>Buzzly</h3>
-          <p>Leader / Vocal</p>
+          <p>Vocal</p>
         </div>
         <div class="member">
           <img src="https://via.placeholder.com/200" alt="Kokona">
           <h3>Kokona</h3>
-          <p>Dance</p>
+          <p>Vocal</p>
         </div>
         <div class="member">
           <img src="https://via.placeholder.com/200" alt="Hitomi">
           <h3>Hitomi</h3>
-          <p>Performance</p>
+          <p>Dancer</p>
         </div>
       </div>
     </div>
@@ -87,26 +66,62 @@
       </div>
     </div>
 
-    <!-- Footer -->
     <footer>
-      Follow us on 
-      <a href="YOUR_INSTAGRAM_URL_HERE" target="_blank" rel="noopener noreferrer">Instagram</a> / 
-      <a href="YOUR_XIAOHONGSHU_URL_HERE" target="_blank" rel="noopener noreferrer">Xiaohongshu</a> / 
-      <a href="YOUR_YOUTUBE_URL_HERE" target="_blank" rel="noopener noreferrer">YouTube</a>
+      Follow Doll Trap on
+      <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <span>·</span>
+      <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">Xiaohongshu</a>
+      <span>·</span>
+      <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
     <script>
       const API_URL = 'https://doll-trap-github-io.onrender.com/api';
       const API_ORIGIN = API_URL.replace('/api', '');
+      const authToken = localStorage.getItem('authToken');
+      const EVENT_CATEGORY_OPTIONS = ['Live', 'Performance', 'Community Event', 'Convention', 'Workshop', 'Collaboration', 'Other'];
+
+      function updateAdminLinkState() {
+        const loginButton = document.getElementById('loginNavBtn');
+        if (!loginButton) return;
+
+        if (authToken) {
+          loginButton.textContent = 'Admin Dashboard';
+          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else {
+          loginButton.textContent = 'Admin Login';
+          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
+
+      function normalizeEventCategory(value) {
+        if (!value) return null;
+        const normalizedValue = String(value).trim().toLowerCase();
+        const match = EVENT_CATEGORY_OPTIONS.find(option => option.toLowerCase() === normalizedValue);
+        return match || null;
+      }
+
+      function getEventCategory(event) {
+        const directCategory = normalizeEventCategory(event.event_category || event.category);
+        if (directCategory) {
+          return directCategory;
+        }
+
+        const descriptionPrefix = event.description?.split(/\s[-–—]\s/)[0]?.trim();
+        return normalizeEventCategory(descriptionPrefix);
+      }
       
       // Load random photo for hero background
       async function loadRandomHeroPhoto() {
         try {
           const response = await fetch(`${API_URL}/photos`);
           const photos = await response.json();
+
+          const groupPhotos = photos.filter(photo => photo.member_tag === 'Group');
+          const heroPhotos = groupPhotos.length > 0 ? groupPhotos : photos;
           
-          if (photos.length > 0) {
-            const randomPhoto = photos[Math.floor(Math.random() * photos.length)];
+          if (heroPhotos.length > 0) {
+            const randomPhoto = heroPhotos[Math.floor(Math.random() * heroPhotos.length)];
             const photoUrl = randomPhoto.photo_url.startsWith('http') 
               ? randomPhoto.photo_url 
               : `${API_ORIGIN}${randomPhoto.photo_url}`;
@@ -134,7 +149,7 @@
           // Sort by date and find next upcoming event
           const now = new Date();
           const upcomingEvents = events
-            .filter(e => new Date(e.date) >= now)
+            .filter(e => (e.kind || 'event') === 'event' && e.date && new Date(e.date) >= now)
             .sort((a, b) => new Date(a.date) - new Date(b.date));
           
           if (upcomingEvents.length === 0) {
@@ -145,6 +160,7 @@
           
           const event = upcomingEvents[0];
           const eventDate = new Date(event.date);
+          const eventCategory = getEventCategory(event);
           const formattedDate = eventDate.toLocaleDateString('en-US', { 
             month: 'long', 
             day: 'numeric', 
@@ -159,7 +175,7 @@
             <p class="performance-date">${formattedDate}</p>
             <p class="performance-title">${event.title}</p>
             <p class="performance-time">${formattedTime}</p>
-            ${event.category ? `<p class="performance-category"><strong>Category:</strong> ${event.category}</p>` : ''}
+            ${eventCategory ? `<p class="performance-category"><strong>Category:</strong> ${eventCategory}</p>` : ''}
             ${event.location ? `<p class="performance-location"><strong>Location:</strong> ${event.location}</p>` : ''}
             <a href="calendar.html" class="view-all-events">View All Events →</a>
           `;
@@ -171,6 +187,7 @@
       }
       
       // Load on page load
+      updateAdminLinkState();
       loadNextEvent();
       loadRandomHeroPhoto();
       
@@ -197,47 +214,4 @@
         }
       });
       
-      // Login modal functions
-      function openLoginModal() {
-        document.getElementById('loginModal').style.display = 'flex';
-      }
-      
-      function closeLoginModal() {
-        document.getElementById('loginModal').style.display = 'none';
-        document.getElementById('homeLoginForm').reset();
-        document.getElementById('homeLoginError').style.display = 'none';
-      }
-      
-      // Home page login
-      document.getElementById('homeLoginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const username = document.getElementById('homeUsername').value;
-        const password = document.getElementById('homePassword').value;
-        
-        try {
-          const response = await fetch(`${API_URL}/auth/login`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, password })
-          });
-          
-          const data = await response.json();
-          if (!response.ok) throw new Error(data.error);
-          
-          localStorage.setItem('authToken', data.token);
-          // Redirect to admin panel
-          window.location.href = 'admin.html';
-        } catch (error) {
-          const errorEl = document.getElementById('homeLoginError');
-          errorEl.textContent = error.message || 'Login failed';
-          errorEl.style.display = 'block';
-        }
-      });
-      
-      // Close modal when clicking outside
-      document.getElementById('loginModal').addEventListener('click', (e) => {
-        if (e.target.id === 'loginModal') {
-          closeLoginModal();
-        }
-      });
     </script>
