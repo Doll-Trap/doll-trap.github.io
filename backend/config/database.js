@@ -57,43 +57,46 @@ const initDB = async () => {
       }
     }
 
+    // Photo folders table (for non-event albums)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS photo_folders (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(120) UNIQUE NOT NULL,
+        created_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Photos table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS photos (
         id SERIAL PRIMARY KEY,
         event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        folder_id INTEGER REFERENCES photo_folders(id) ON DELETE SET NULL,
         photo_url VARCHAR(255) NOT NULL,
         caption TEXT,
-        photo_category VARCHAR(100),
         member_tag VARCHAR(100),
         uploaded_by INTEGER REFERENCES users(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    
-    // Add photo_category column if it doesn't exist (migration for existing databases)
+
+    // Add folder_id column if it doesn't exist (migration for existing databases)
     try {
       await pool.query(`
-        ALTER TABLE photos ADD COLUMN IF NOT EXISTS photo_category VARCHAR(100);
+        ALTER TABLE photos ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES photo_folders(id) ON DELETE SET NULL;
       `);
     } catch (e) {
-      console.error('Migration: photos.category ADD COLUMN failed, retrying without IF NOT EXISTS:', e.message);
-      try {
-        await pool.query(`ALTER TABLE photos ADD COLUMN category VARCHAR(100) DEFAULT 'Performance';`);
-      } catch (e2) {
-        // Column already exists, safe to ignore
-      }
+      console.error('Migration: photos.folder_id ADD COLUMN failed:', e.message);
     }
 
-    // Verify category column exists
-    const categoryCheck = await pool.query(`
-      SELECT column_name FROM information_schema.columns
-      WHERE table_name = 'photos' AND column_name = 'category'
-    `);
-    if (categoryCheck.rows.length === 0) {
-      console.error('❌ CRITICAL: photos.category column still missing after migration!');
-    } else {
-      console.log('✅ photos.category column verified');
+    // Remove photo_category column (migration)
+    try {
+      await pool.query(`
+        ALTER TABLE photos DROP COLUMN IF EXISTS photo_category;
+      `);
+    } catch (e) {
+      console.error('Migration: photos.photo_category DROP COLUMN failed:', e.message);
     }
     
     // Add member_tag column if it doesn't exist (migration for existing databases)
@@ -135,7 +138,32 @@ const initDB = async () => {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    // Create default "Others" folder if it doesn't exist
+    try {
+      const othersCheck = await pool.query(`SELECT id FROM photo_folders WHERE name = 'Others'`);
+      if (othersCheck.rows.length === 0) {
+        await pool.query(`INSERT INTO photo_folders (name, created_by) VALUES ('Others', 1)`);
+        console.log('✅ Created default "Others" folder');
+      }
+    } catch (e) {
+      console.error('Migration: Could not create default Others folder:', e.message);
+    }
 
+    // Assign photos without event_id or folder_id to Others folder
+    try {
+      const othersFolder = await pool.query(`SELECT id FROM photo_folders WHERE name = 'Others'`);
+      if (othersFolder.rows.length > 0) {
+        const othersFolderId = othersFolder.rows[0].id;
+        await pool.query(`
+          UPDATE photos 
+          SET folder_id = $1 
+          WHERE event_id IS NULL AND folder_id IS NULL
+        `, [othersFolderId]);
+        console.log('✅ Assigned orphaned photos to Others folder');
+      }
+    } catch (e) {
+      console.error('Migration: Could not assign photos to Others folder:', e.message);
+    }
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
