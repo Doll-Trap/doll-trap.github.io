@@ -248,6 +248,21 @@ Edit `backend/routes/photos.js` to modify:
 - Allowed file types (JPEG, PNG, GIF, WebP)
 - Supabase Storage upload behavior
 
+### Legacy Photo Migration
+If old records still point to `/uploads/...`, migrate them to Supabase Storage so they survive deploys and restarts:
+
+```bash
+cd backend
+npm run migrate:legacy-photos
+```
+
+To preview what would be migrated without changing anything:
+
+```bash
+cd backend
+node scripts/migrate-legacy-photos.js --dry-run
+```
+
 ### CORS Settings
 Edit `backend/server.js` to configure CORS for different domains in production.
 

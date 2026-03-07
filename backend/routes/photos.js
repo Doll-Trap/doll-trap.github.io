@@ -6,6 +6,25 @@ const { pool } = require('../config/database');
 const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
+let hasWarnedAboutLegacyUploads = false;
+
+function isLegacyUpload(photoUrl) {
+  return typeof photoUrl === 'string' && photoUrl.startsWith('/uploads/');
+}
+
+function decoratePhotoRows(rows) {
+  const legacyCount = rows.filter(row => isLegacyUpload(row.photo_url)).length;
+
+  if (legacyCount > 0 && !hasWarnedAboutLegacyUploads) {
+    console.warn(`⚠️ Detected ${legacyCount} legacy photo(s) still pointing to /uploads. Run \`npm run migrate:legacy-photos\` to move them to Supabase Storage.`);
+    hasWarnedAboutLegacyUploads = true;
+  }
+
+  return rows.map(row => ({
+    ...row,
+    is_legacy_upload: isLegacyUpload(row.photo_url)
+  }));
+}
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -45,7 +64,7 @@ router.get('/', async (req, res) => {
       FROM photos p
       ORDER BY p.created_at DESC
     `);
-    res.json(result.rows);
+    res.json(decoratePhotoRows(result.rows));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -62,7 +81,7 @@ router.get('/event/:event_id', async (req, res) => {
        ORDER BY p.created_at DESC`,
       [req.params.event_id]
     );
-    res.json(result.rows);
+    res.json(decoratePhotoRows(result.rows));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
