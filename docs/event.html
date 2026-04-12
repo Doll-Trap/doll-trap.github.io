@@ -150,6 +150,15 @@
         margin-top: 8px;
       }
       .ep-signin-prompt a { color: var(--pink); text-decoration: none; font-weight: 600; }
+      .login-toast {
+        position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+        background: #1e1b2e; color: #fff; padding: 12px 20px; border-radius: 10px;
+        font-size: 14px; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,.35);
+        display: flex; align-items: center; gap: 12px; white-space: nowrap;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+      }
+      .login-toast.show { opacity: 1; pointer-events: auto; }
+      .login-toast a { color: #f472b6; font-weight: 600; text-decoration: none; }
 
       /* ── Photos ── */
       .ep-photos-grid {
@@ -422,20 +431,15 @@
       function renderMemberArea() {
         const area = document.getElementById('epMemberArea');
         if (!eventId) { area.innerHTML = ''; return; }
+        area.innerHTML = `
+          <div class="ep-section-title">My Activity</div>
+          <div class="ep-member-actions">
+            <button id="epBtnSave" class="ep-member-btn" onclick="toggleSave()">⭐ Save Event</button>
+            <button id="epBtnCheckin" class="ep-member-btn" onclick="toggleCheckin()">📍 Check In</button>
+          </div>`;
         if (memberToken) {
-          area.innerHTML = `
-            <div class="ep-section-title">My Activity</div>
-            <div class="ep-member-actions">
-              <button id="epBtnSave" class="ep-member-btn" onclick="toggleSave()">⭐ Save Event</button>
-              <button id="epBtnCheckin" class="ep-member-btn" onclick="toggleCheckin()">📍 Check In</button>
-            </div>`;
           updateMemberBtns();
           loadMemberStatus();
-        } else {
-          area.innerHTML = `
-            <div class="ep-signin-prompt">
-              <a href="portal.html">🔑 Sign in</a> to save this event and check in
-            </div>`;
         }
       }
       function updateMemberBtns() {
@@ -466,8 +470,22 @@
           updateMemberBtns();
         } catch {}
       }
+      function showLoginToast() {
+        let t = document.getElementById('loginToast');
+        if (!t) {
+          t = document.createElement('div');
+          t.id = 'loginToast';
+          t.className = 'login-toast';
+          t.innerHTML = '<span>Sign in to save events</span><a href="portal.html">Log In →</a>';
+          document.body.appendChild(t);
+        }
+        t.classList.add('show');
+        clearTimeout(t._hide);
+        t._hide = setTimeout(() => t.classList.remove('show'), 3000);
+      }
+
       async function toggleSave() {
-        if (!memberToken) return;
+        if (!memberToken) { showLoginToast(); return; }
         const was = memberEventStatus.saved;
         const res = await fetch(`${API_URL}/members/saves/events/${eventId}`, {
           method: was ? 'DELETE' : 'POST',
@@ -476,7 +494,7 @@
         if (res?.ok) { memberEventStatus.saved = !was; updateMemberBtns(); }
       }
       async function toggleCheckin() {
-        if (!memberToken) return;
+        if (!memberToken) { showLoginToast(); return; }
         if (!eventDate || new Date(eventDate) > new Date()) {
           alert('Check-in is only available after the event has taken place.');
           return;

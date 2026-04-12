@@ -420,7 +420,7 @@
             <div class="gallery-item">
               <img src="${url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}" onclick="openImageModal(${index})">
               <p class="photo-member">${memberTag}</p>
-              ${memberToken ? `<button class="photo-heart-btn${isSaved ? ' saved' : ''}" data-photo-id="${photo.id}" onclick="toggleSavePhoto(${photo.id}, event)">${isSaved ? '\u2665' : '\u2661'}</button>` : ''}
+              <button class="photo-heart-btn${isSaved ? ' saved' : ''}" data-photo-id="${photo.id}" onclick="toggleSavePhoto(${photo.id}, event)">${isSaved ? '\u2665' : '\u2661'}</button>
             </div>
           `;
         }).join('');
@@ -489,9 +489,23 @@
         } catch (_) {}
       }
 
+      function showLoginToast() {
+        let t = document.getElementById('loginToast');
+        if (!t) {
+          t = document.createElement('div');
+          t.id = 'loginToast';
+          t.className = 'login-toast';
+          t.innerHTML = '<span>Sign in to save photos</span><a href="portal.html">Log In →</a>';
+          document.body.appendChild(t);
+        }
+        t.classList.add('show');
+        clearTimeout(t._hide);
+        t._hide = setTimeout(() => t.classList.remove('show'), 3000);
+      }
+
       async function toggleSavePhoto(photoId, e) {
         e.stopPropagation();
-        if (!memberToken) { window.location.href = 'portal.html'; return; }
+        if (!memberToken) { showLoginToast(); return; }
         const isSaved = savedPhotoIds.has(photoId);
         const method = isSaved ? 'DELETE' : 'POST';
         try {

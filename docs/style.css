@@ -2451,6 +2451,16 @@ footer span {
   color: white;
 }
 
+.login-toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+  background: #1e1b2e; color: #fff; padding: 12px 20px; border-radius: 10px;
+  font-size: 14px; z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,.35);
+  display: flex; align-items: center; gap: 12px; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.login-toast.show { opacity: 1; pointer-events: auto; }
+.login-toast a { color: #f472b6; font-weight: 600; text-decoration: none; }
+
 /* ── Nav Login Dropdown ──────────────────────────────────── */
 .nav-login-wrap {
   position: relative;
