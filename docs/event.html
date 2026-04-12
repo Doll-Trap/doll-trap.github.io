@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .ep-wrap {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 36px 28px 80px;
+        display: grid;
+        grid-template-columns: 380px 1fr;
+        gap: 48px;
+        align-items: start;
+      }
+
+      /* ── Left: poster ── */
+      .ep-poster {
+        position: sticky;
+        top: 20px;
+      }
+      .ep-poster img {
+        width: 100%;
+        border-radius: 16px;
+        display: block;
+        box-shadow: 0 20px 60px rgba(30, 27, 75, 0.18);
+      }
+      .ep-poster-placeholder {
+        width: 100%;
+        aspect-ratio: 3/4;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #1e1b4b, #4c1d95, #831843);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 64px;
+      }
+
+      /* ── Right: details ── */
+      .ep-details { min-width: 0; }
+
+      .ep-back {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 20px;
+        transition: color 0.2s;
+      }
+      .ep-back:hover { color: var(--pink); }
+
+      .ep-category {
+        display: inline-block;
+        padding: 4px 14px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(217,70,166,0.1));
+        border: 1px solid rgba(217,70,166,0.25);
+        color: var(--pink);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-bottom: 14px;
+      }
+
+      .ep-title {
+        font-size: clamp(22px, 3.5vw, 36px);
+        font-weight: 800;
+        color: var(--text-primary);
+        margin: 0 0 20px;
+        line-height: 1.2;
+      }
+
+      .ep-meta-list {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 28px;
+      }
+      .ep-meta-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        font-size: 15px;
+        color: var(--text-secondary);
+      }
+      .ep-meta-icon { flex-shrink: 0; width: 20px; text-align: center; }
+
+      .ep-divider {
+        height: 1px;
+        background: var(--border-soft);
+        margin: 24px 0;
+      }
+
+      .ep-section-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin: 0 0 14px;
+        letter-spacing: 0.02em;
+      }
+
+      .ep-desc {
+        font-size: 15px;
+        line-height: 1.8;
+        color: var(--text-secondary);
+        white-space: pre-line;
+        margin: 0;
+      }
+
+      /* ── Member actions ── */
+      .ep-member-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 8px;
+      }
+      .ep-member-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 11px 16px;
+        border-radius: 10px;
+        font-size: 14px;
+        font-weight: 600;
+        border: 2px solid var(--border-soft);
+        background: var(--surface);
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .ep-member-btn:hover { border-color: var(--pink); color: var(--pink); }
+      .ep-member-btn.active {
+        background: linear-gradient(135deg, #d946a6, #ec4899);
+        color: white;
+        border-color: transparent;
+      }
+      .ep-signin-prompt {
+        padding: 14px 18px;
+        border-radius: 10px;
+        background: rgba(217,70,166,0.05);
+        border: 1px solid var(--border-soft);
+        font-size: 14px;
+        color: var(--text-secondary);
+        text-align: center;
+        margin-top: 8px;
+      }
+      .ep-signin-prompt a { color: var(--pink); text-decoration: none; font-weight: 600; }
+
+      /* ── Photos ── */
+      .ep-photos-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+        gap: 8px;
+      }
+      .ep-photo-item {
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+        cursor: pointer;
+      }
+      .ep-photo-item img {
+        width: 100%; height: 100%;
+        object-fit: cover; display: block;
+        transition: transform 0.25s;
+      }
+      .ep-photo-item:hover img { transform: scale(1.06); }
+
+      /* ── Videos ── */
+      .ep-video-item {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 12px;
+        border: 1px solid var(--border-soft);
+        border-radius: 10px;
+        margin-bottom: 8px;
+        background: var(--surface);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: box-shadow 0.2s;
+      }
+      .ep-video-item:hover { box-shadow: var(--shadow-soft); }
+      .ep-video-thumb {
+        width: 96px; height: 56px;
+        border-radius: 6px; object-fit: cover; flex-shrink: 0;
+      }
+      .ep-video-no-thumb {
+        width: 96px; height: 56px;
+        border-radius: 6px; flex-shrink: 0;
+        background: linear-gradient(135deg, #1e1b4b, #4c1d95);
+        display: flex; align-items: center; justify-content: center; font-size: 22px;
+      }
+      .ep-video-title {
+        font-size: 13px; font-weight: 600;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+
+      /* ── Lightbox ── */
+      .ep-lightbox {
+        display: none; position: fixed; inset: 0;
+        background: rgba(0,0,0,0.92); z-index: 9000;
+        align-items: center; justify-content: center; padding: 20px; cursor: zoom-out;
+      }
+      .ep-lightbox.open { display: flex; }
+      .ep-lightbox img { max-width: 100%; max-height: 90vh; border-radius: 8px; cursor: default; }
+      .ep-lightbox-close {
+        position: absolute; top: 16px; right: 20px;
+        color: white; font-size: 32px; cursor: pointer;
+        background: none; border: none; opacity: 0.7; line-height: 1;
+      }
+      .ep-lightbox-close:hover { opacity: 1; }
+
+      /* ── Loading ── */
+      .ep-loading { text-align: center; padding: 80px 20px; color: var(--text-secondary); }
+
+      /* ── Mobile ── */
+      @media (max-width: 700px) {
+        .ep-wrap {
+          grid-template-columns: 1fr;
+          gap: 28px;
+          padding: 24px 18px 60px;
+        }
+        .ep-poster { position: static; }
+        .ep-poster img, .ep-poster-placeholder { max-height: 420px; object-fit: contain; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
+      <a href="#contact">Contact</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
+    </nav>
+
+    <div id="epLoading" class="ep-loading">Loading event…</div>
+
+    <div class="ep-wrap" id="epWrap" style="display:none;">
+      <!-- Left: poster -->
+      <div class="ep-poster" id="epPosterCol">
+        <div class="ep-poster-placeholder" id="epPosterPlaceholder">🎀</div>
+        <img id="epPosterImg" src="" alt="" style="display:none;">
+      </div>
+
+      <!-- Right: details -->
+      <div class="ep-details">
+        <a href="calendar.html" class="ep-back">← Back to Calendar</a>
+
+        <div id="epCategory" class="ep-category" style="display:none;"></div>
+        <h1 id="epTitle" class="ep-title"></h1>
+
+        <div id="epMetaList" class="ep-meta-list"></div>
+
+        <!-- Description -->
+        <div id="epDescSection" style="display:none;">
+          <div class="ep-divider"></div>
+          <div class="ep-section-title">About This Event</div>
+          <p id="epDesc" class="ep-desc"></p>
+        </div>
+
+        <!-- Member actions -->
+        <div class="ep-divider"></div>
+        <div id="epMemberArea"></div>
+
+        <!-- Photos -->
+        <div id="epPhotosSection" style="display:none;">
+          <div class="ep-divider"></div>
+          <div class="ep-section-title">📸 Photos</div>
+          <div id="epPhotosGrid" class="ep-photos-grid"></div>
+        </div>
+
+        <!-- Videos -->
+        <div id="epVideosSection" style="display:none;">
+          <div class="ep-divider"></div>
+          <div class="ep-section-title">🎬 Videos</div>
+          <div id="epVideosList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lightbox -->
+    <div class="ep-lightbox" id="epLightbox" onclick="closeLightbox()">
+      <button class="ep-lightbox-close" onclick="closeLightbox()">&times;</button>
+      <img id="epLightboxImg" src="" alt="" onclick="event.stopPropagation()">
+    </div>
+
+    <script>
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
+
+      const memberToken = localStorage.getItem('memberToken');
+      const adminToken  = localStorage.getItem('authToken');
+      let eventId = null;
+      let memberEventStatus = { saved: false, checkedIn: false };
+
+      function parseJwt(t) {
+        try { return JSON.parse(atob(t.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        if (adminToken) {
+          const p = parseJwt(adminToken);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberToken) {
+          const p = parseJwt(memberToken);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
+
+      function formatDate(dateStr) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      }
+      function formatTime(dateStr) {
+        if (!dateStr) return null;
+        const d = new Date(dateStr);
+        if (d.getHours() === 0 && d.getMinutes() === 0) return null;
+        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      }
+      function getYouTubeId(url) {
+        const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/\s]{11})/);
+        return m ? m[1] : null;
+      }
+      function getVideoThumbnail(v) {
+        if (v.thumbnail_url) return v.thumbnail_url;
+        const id = getYouTubeId(v.url);
+        return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
+      }
+
+      function openLightbox(src) {
+        document.getElementById('epLightboxImg').src = src;
+        document.getElementById('epLightbox').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeLightbox() {
+        document.getElementById('epLightbox').classList.remove('open');
+        document.body.style.overflow = '';
+      }
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+
+      // ── Member actions ─────────────────────────────────────────
+      function renderMemberArea() {
+        const area = document.getElementById('epMemberArea');
+        if (!eventId) { area.innerHTML = ''; return; }
+        if (memberToken) {
+          area.innerHTML = `
+            <div class="ep-section-title">My Activity</div>
+            <div class="ep-member-actions">
+              <button id="epBtnSave" class="ep-member-btn" onclick="toggleSave()">⭐ Save Event</button>
+              <button id="epBtnCheckin" class="ep-member-btn" onclick="toggleCheckin()">📍 Check In</button>
+            </div>`;
+          updateMemberBtns();
+          loadMemberStatus();
+        } else {
+          area.innerHTML = `
+            <div class="ep-signin-prompt">
+              <a href="portal.html">🔑 Sign in</a> to save this event and check in
+            </div>`;
+        }
+      }
+      function updateMemberBtns() {
+        const s = document.getElementById('epBtnSave');
+        const c = document.getElementById('epBtnCheckin');
+        if (!s) return;
+        s.classList.toggle('active', memberEventStatus.saved);
+        s.textContent = memberEventStatus.saved ? '★ Saved' : '⭐ Save Event';
+        c.classList.toggle('active', memberEventStatus.checkedIn);
+        c.textContent = memberEventStatus.checkedIn ? '✓ Checked In' : '📍 Check In';
+      }
+      async function loadMemberStatus() {
+        try {
+          const res = await fetch(`${API_URL}/members/my-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+            body: JSON.stringify({ event_ids: [eventId] })
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          memberEventStatus.saved = data.savedEvents.includes(eventId);
+          memberEventStatus.checkedIn = data.checkedEvents.includes(eventId);
+          updateMemberBtns();
+        } catch {}
+      }
+      async function toggleSave() {
+        if (!memberToken) return;
+        const was = memberEventStatus.saved;
+        const res = await fetch(`${API_URL}/members/saves/events/${eventId}`, {
+          method: was ? 'DELETE' : 'POST',
+          headers: { 'Authorization': `Bearer ${memberToken}` }
+        }).catch(() => null);
+        if (res?.ok) { memberEventStatus.saved = !was; updateMemberBtns(); }
+      }
+      async function toggleCheckin() {
+        if (!memberToken) return;
+        const was = memberEventStatus.checkedIn;
+        const res = await fetch(`${API_URL}/members/checkins/${eventId}`, {
+          method: was ? 'DELETE' : 'POST',
+          headers: { 'Authorization': `Bearer ${memberToken}` }
+        }).catch(() => null);
+        if (res?.ok) { memberEventStatus.checkedIn = !was; updateMemberBtns(); }
+      }
+
+      // ── Main loader ────────────────────────────────────────────
+      async function loadEvent() {
+        const params = new URLSearchParams(location.search);
+        eventId = parseInt(params.get('id'));
+        if (!eventId) {
+          document.getElementById('epLoading').innerHTML =
+            'Event not found. <a href="calendar.html">← Back to Calendar</a>';
+          return;
+        }
+
+        try {
+          const [evRes, photosRes, videosRes] = await Promise.all([
+            fetch(`${API_URL}/events/${eventId}`),
+            fetch(`${API_URL}/photos/event/${eventId}`),
+            fetch(`${API_URL}/videos/event/${eventId}`)
+          ]);
+          if (!evRes.ok) throw new Error();
+          const ev     = await evRes.json();
+          const photos = photosRes.ok ? await photosRes.json() : [];
+          const videos = videosRes.ok ? await videosRes.json() : [];
+          render(ev, photos, videos);
+        } catch {
+          document.getElementById('epLoading').innerHTML =
+            'Could not load event. <a href="calendar.html">← Back to Calendar</a>';
+        }
+      }
+
+      function render(ev, photos, videos) {
+        document.title = `${ev.title} – Doll Trap`;
+
+        // Poster
+        if (ev.image_url) {
+          document.getElementById('epPosterPlaceholder').style.display = 'none';
+          const img = document.getElementById('epPosterImg');
+          img.src = ev.image_url;
+          img.alt = ev.title;
+          img.style.display = 'block';
+        }
+
+        // Category
+        const category = ev.event_category || ev.category;
+        if (category) {
+          const el = document.getElementById('epCategory');
+          el.textContent = category;
+          el.style.display = 'inline-block';
+        }
+
+        // Title
+        document.getElementById('epTitle').textContent = ev.title;
+
+        // Meta
+        const meta = [];
+        const dateStr = formatDate(ev.date);
+        const timeStr = formatTime(ev.date);
+        if (dateStr) {
+          let label = dateStr;
+          if (timeStr) label += ` · ${timeStr}${ev.end_time ? ' – ' + ev.end_time : ''}`;
+          meta.push(['📅', label]);
+        }
+        if (ev.location) meta.push(['📍', ev.location]);
+        document.getElementById('epMetaList').innerHTML = meta.map(([icon, text]) => `
+          <div class="ep-meta-item">
+            <span class="ep-meta-icon">${icon}</span>
+            <span>${text}</span>
+          </div>`).join('');
+
+        // Description
+        if (ev.description) {
+          document.getElementById('epDesc').textContent = ev.description;
+          document.getElementById('epDescSection').style.display = 'block';
+        }
+
+        // Member area
+        renderMemberArea();
+
+        // Photos
+        if (photos.length > 0) {
+          document.getElementById('epPhotosGrid').innerHTML = photos.map(p => `
+            <div class="ep-photo-item" onclick="openLightbox('${p.photo_url}')">
+              <img src="${p.photo_url}" alt="${p.caption || ''}" loading="lazy">
+            </div>`).join('');
+          document.getElementById('epPhotosSection').style.display = 'block';
+        }
+
+        // Videos
+        if (videos.length > 0) {
+          document.getElementById('epVideosList').innerHTML = videos.map(v => {
+            const thumb = getVideoThumbnail(v);
+            return `
+              <a class="ep-video-item" href="${v.url}" target="_blank" rel="noopener noreferrer">
+                ${thumb
+                  ? `<img class="ep-video-thumb" src="${thumb}" alt="${v.title}">`
+                  : `<div class="ep-video-no-thumb">🎬</div>`}
+                <div style="flex:1;min-width:0;">
+                  <div class="ep-video-title">${v.title}</div>
+                  ${v.description ? `<div style="font-size:12px;color:var(--text-secondary);margin-top:3px;">${v.description}</div>` : ''}
+                </div>
+                <span style="font-size:16px;color:var(--text-secondary);flex-shrink:0;">↗</span>
+              </a>`;
+          }).join('');
+          document.getElementById('epVideosSection').style.display = 'block';
+        }
+
+        document.getElementById('epLoading').style.display = 'none';
+        document.getElementById('epWrap').style.display = 'grid';
+      }
+
+      updateNavLoginState();
+      loadEvent();
+    </script>
+  </body>
+</html>

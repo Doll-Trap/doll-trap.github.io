@@ -2,7 +2,9 @@
 //  Doll Trap Admin — admin.js
 // ============================================================
 
-const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+  ? 'http://localhost:5001/api'
+  : 'https://doll-trap-github-io.onrender.com/api';
 const API_ORIGIN = API_URL.replace('/api', '');
 let authToken = localStorage.getItem('authToken');
 let dashboardShown = false;
@@ -80,7 +82,6 @@ document.getElementById('sidebarLogoutBtn').addEventListener('click', doLogout);
 function doLogout() {
   localStorage.removeItem('authToken');
   authToken = null;
-  closeAccountSettingsModal();
   location.reload();
 }
 
@@ -242,11 +243,21 @@ function clearPosterUpload() {
   document.getElementById('posterFileInput').value = '';
   document.getElementById('posterPreviewWrap').style.display = 'none';
   document.getElementById('posterUploadArea').style.display = 'block';
+  document.getElementById('eventImage').value = '';
 }
 
 function onPosterUrlInput() {
   const url = document.getElementById('eventImage').value.trim();
-  if (url) clearPosterUpload();
+  if (url) {
+    // URL typed — clear any selected file and hide file preview
+    // (but don't clear the URL field itself — that's what the user is typing)
+    document.getElementById('posterFileInput').value = '';
+    document.getElementById('posterPreviewWrap').style.display = 'none';
+    document.getElementById('posterUploadArea').style.display = 'none';
+  } else {
+    // URL cleared — show upload area again
+    document.getElementById('posterUploadArea').style.display = 'block';
+  }
 }
 
 // ── Photos: Upload ────────────────────────────────────────────
@@ -439,8 +450,9 @@ function syncEventKindUI(kind) {
 
 // ── Sidebar & Panel toggle ────────────────────────────────────
 function switchSection(section, clickedBtn) {
-  document.getElementById('eventsSection').classList.remove('active');
-  document.getElementById('photosSection').classList.remove('active');
+  ['events', 'photos', 'videos', 'account'].forEach(s => {
+    document.getElementById(s + 'Section').classList.remove('active');
+  });
 
   document.querySelectorAll('.sidebar-nav-btn').forEach(btn => btn.classList.remove('active'));
 
@@ -448,12 +460,15 @@ function switchSection(section, clickedBtn) {
   if (clickedBtn) clickedBtn.classList.add('active');
 
   // Update mobile topbar title
-  const titles = { events: '📅 Events', photos: '📸 Photos' };
+  const titles = { events: '📅 Events', photos: '📸 Photos', videos: '🎬 Videos', account: '⚙️ Account' };
   const titleEl = document.getElementById('mobileSectionTitle');
   if (titleEl && titles[section]) titleEl.textContent = titles[section];
 
   // Close drawer on mobile after selecting
   if (window.innerWidth <= 900) closeMobileSidebar();
+
+  // Lazy-load videos when section first opens
+  if (section === 'videos') loadVideos();
 }
 
 function toggleSidebar() {
@@ -509,6 +524,15 @@ async function loadEvents() {
       editEventSelect.innerHTML += `<option value="${event.id}">${icon} ${event.title}</option>`;
     });
     editEventSelect.value = currentEditEventValue;
+
+    // Populate video event dropdown
+    const videoEventSelect = document.getElementById('videoEvent');
+    const currentVideoEventValue = videoEventSelect.value;
+    videoEventSelect.innerHTML = '<option value="">Not linked to an event</option>';
+    events.filter(e => getEventKind(e) === 'event').forEach(event => {
+      videoEventSelect.innerHTML += `<option value="${event.id}">📅 ${event.title}</option>`;
+    });
+    videoEventSelect.value = currentVideoEventValue;
 
     filterEvents('all');
     await loadPhotos();
@@ -717,14 +741,6 @@ document.getElementById('editPhotoModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('editPhotoModal')) closeEditPhotoModal();
 });
 
-// ── Account Settings Modal ────────────────────────────────────
-function closeAccountSettingsModal() {
-  document.getElementById('accountSettingsModal').classList.remove('active');
-}
-
-document.getElementById('accountSettingsModal').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('accountSettingsModal')) closeAccountSettingsModal();
-});
 
 // ── Edit Event ────────────────────────────────────────────────
 function editEvent(id) {
@@ -816,13 +832,150 @@ async function deletePhoto(id) {
   }
 }
 
+// ── Videos: CRUD ─────────────────────────────────────────────
+let allVideosData = [];
+let editingVideoId = null;
+
+function getYouTubeId(url) {
+  const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function getVideoThumbnail(video) {
+  if (video.thumbnail_url) return video.thumbnail_url;
+  const ytId = getYouTubeId(video.url);
+  return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+}
+
+async function loadVideos() {
+  try {
+    const res = await fetch(`${API_URL}/videos`);
+    allVideosData = await res.json();
+    displayVideos(allVideosData);
+  } catch (err) {
+    console.error('Error loading videos:', err);
+  }
+}
+
+function displayVideos(videos) {
+  const list = document.getElementById('allVideosList');
+  if (!videos || videos.length === 0) {
+    list.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">No videos yet</p>';
+    return;
+  }
+  list.innerHTML = videos.map(v => {
+    const thumb = getVideoThumbnail(v);
+    const thumbHtml = thumb
+      ? `<img src="${thumb}" alt="${v.title}" style="width:100px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;">`
+      : `<div style="width:100px;height:60px;background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎬</div>`;
+    const eventLabel = v.event_title ? `<span style="font-size:11px;color:#94a3b8;">📅 ${v.event_title}</span>` : '';
+    return `
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--bg-dark);">
+        <a href="${v.url}" target="_blank" rel="noopener noreferrer" style="flex-shrink:0;position:relative;display:block;">
+          ${thumbHtml}
+          <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;text-shadow:0 1px 4px #000;">▶</span>
+        </a>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:600;font-size:14px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div>
+          ${eventLabel}
+          ${v.description ? `<p style="font-size:12px;color:#94a3b8;margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${v.description}</p>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+          <button onclick="editVideo(${v.id})" style="padding:5px 10px;font-size:12px;">Edit</button>
+          <button onclick="deleteVideo(${v.id})" style="padding:5px 10px;font-size:12px;background:#ef4444;">Delete</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.getElementById('videoForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const isEditing = editingVideoId !== null;
+  const submitBtn = document.getElementById('videoSubmitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Saving…';
+
+  const payload = {
+    title: document.getElementById('videoTitle').value,
+    url: document.getElementById('videoUrl').value,
+    description: document.getElementById('videoDescription').value || null,
+    event_id: document.getElementById('videoEvent').value || null
+  };
+
+  try {
+    const response = await fetch(
+      isEditing ? `${API_URL}/videos/${editingVideoId}` : `${API_URL}/videos`,
+      {
+        method: isEditing ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+    if (!response.ok) {
+      const err = await parseApiError(response, isEditing ? 'Failed to update video' : 'Failed to add video');
+      throw new Error(err);
+    }
+    showMessage('videoMessage', isEditing ? 'Video updated!' : 'Video added!', 'success');
+    resetVideoFormMode();
+    loadVideos();
+  } catch (err) {
+    showMessage('videoMessage', err.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = isEditing ? 'Save Video' : 'Add Video';
+  }
+});
+
+document.getElementById('videoCancelEditBtn').addEventListener('click', resetVideoFormMode);
+
+function resetVideoFormMode() {
+  editingVideoId = null;
+  document.getElementById('videoForm').reset();
+  document.getElementById('videoCancelEditBtn').classList.add('hidden');
+  document.getElementById('videoSubmitBtn').textContent = 'Add Video';
+}
+
+function editVideo(id) {
+  const v = allVideosData.find(x => x.id === id);
+  if (!v) return;
+  editingVideoId = id;
+  document.getElementById('videoTitle').value = v.title;
+  document.getElementById('videoUrl').value = v.url;
+  document.getElementById('videoDescription').value = v.description || '';
+  document.getElementById('videoEvent').value = v.event_id || '';
+  document.getElementById('videoSubmitBtn').textContent = 'Save Video';
+  document.getElementById('videoCancelEditBtn').classList.remove('hidden');
+
+  // Open panel if collapsed, scroll to form
+  const panel = document.getElementById('addVideoPanel');
+  if (panel && panel.classList.contains('collapsed')) panel.classList.remove('collapsed');
+  if (panel) panel.scrollIntoView({ behavior: 'smooth' });
+}
+
+async function deleteVideo(id) {
+  if (!confirm('Delete this video?')) return;
+  try {
+    const response = await fetch(`${API_URL}/videos/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (!response.ok) throw new Error('Failed to delete');
+    loadVideos();
+  } catch (err) {
+    alert('Error: ' + err.message);
+  }
+}
+
 // ── Show Dashboard ────────────────────────────────────────────
 function showDashboard() {
   if (dashboardShown) return;
   dashboardShown = true;
   document.getElementById('loginForm').classList.add('hidden');
   document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('accountSettingsBtn').classList.remove('hidden');
   document.getElementById('logoutBtn').classList.add('hidden');
   document.getElementById('sidebarLogoutBtn').classList.remove('hidden');
   loadEvents();

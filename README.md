@@ -1,447 +1,233 @@
-# 🎀 Doll Trap - Seattle Underground Idol Group
+# Doll Trap - Seattle Underground Idol Group
 
 A cosplay idol performance group website with admin panel for event and photo management.
 
-Events and albums now share the same `events` table. Records are distinguished with `kind = 'event' | 'album'` so the calendar/home pages only show real events, while the gallery/admin can also manage albums.
+Events and albums share the same `events` table, distinguished by `kind = 'event' | 'album'`. The calendar and home page only show `kind = 'event'` records; the gallery and admin can also manage albums.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 dolltrap.github.io/
-├── docs/                     # Frontend website files (GitHub Pages root)
+├── docs/                     # Frontend (GitHub Pages root)
 │   ├── index.html            # Home page
 │   ├── members.html          # Members profile page
 │   ├── calendar.html         # Event calendar
 │   ├── gallery.html          # Photo gallery / albums
-│   ├── admin.html            # Admin panel (events, albums, photo uploads)
-│   ├── style.css             # Global site styles
-│   └── admin.css             # Admin panel styles
+│   ├── videos.html           # Videos page
+│   ├── portal.html           # Member portal (login, saved events/photos)
+│   ├── admin.html            # Admin panel
+│   ├── style.css             # Global styles
+│   ├── admin.css             # Admin panel styles
+│   └── admin.js              # Admin panel logic
 │
-├── backend/                  # Node.js Express API server
-│   ├── server.js            # Main server file
-│   ├── package.json         # Dependencies
-│   ├── Dockerfile           # Docker image configuration
+├── backend/                  # Node.js Express API
+│   ├── server.js             # Entry point
+│   ├── package.json
+│   ├── Dockerfile
 │   ├── config/
-│   │   └── database.js      # PostgreSQL connection & setup / migrations
+│   │   └── database.js       # PostgreSQL connection & auto-migration
 │   ├── routes/
-│   │   ├── auth.js          # Admin authentication
-│   │   ├── events.js        # Event + album CRUD operations
-│   │   └── photos.js        # Photo upload and update operations
+│   │   ├── auth.js           # Admin authentication
+│   │   ├── events.js         # Events + albums CRUD + poster upload
+│   │   ├── photos.js         # Photo upload / update / delete
+│   │   ├── videos.js         # Video CRUD
+│   │   └── members.js        # Member registration, login, saves, check-ins
 │   ├── middleware/
-│   │   └── auth.js          # JWT verification middleware
-│   └── uploads/             # Local upload mount path (legacy / optional)
+│   │   ├── auth.js           # Admin JWT middleware
+│   │   └── memberAuth.js     # Member JWT middleware
+│   └── uploads/              # Legacy local upload path (unused, kept for reference)
 │
-├── docker-compose.yml        # Docker Compose configuration (PostgreSQL + API)
-├── images/                   # Static images
-│   ├── xama/                 # XAMA event photos
-│   └── SpFes/                # Spring Festival event photos
-│
-└── README.md                 # This file
+├── docker-compose.yml        # Docker config (API only — DB is on Neon)
+└── README.md
 ```
 
-## 🚀 Quick Start
+## Local Development
 
-### Frontend (GitHub Pages)
-The frontend files are in the `docs/` folder. They are static HTML/CSS/JS files served by GitHub Pages.
+### Prerequisites
+- Node.js v18+
+- A `.env` file in `backend/` (copy from `.env.example`)
 
-**To use as GitHub Pages:**
-1. Push the repository with `docs/` enabled for GitHub Pages
-2. They will be served as a static site at `https://yourusername.github.io`
-
-### Backend Setup (with Docker)
-
-#### Prerequisites
-- **Docker** - [Download](https://www.docker.com/products/docker-desktop)
-- **Docker Compose** - Included with Docker Desktop
-
-#### Quick Start with Docker
-
-1. **Setup environment variables:**
-   ```bash
-   cp .env.example .env
-   ```
-
-2. **Edit `.env` with your settings (optional):**
-   ```
-   DB_PASSWORD=your_secure_password_here
-   JWT_SECRET=your_super_secret_key_change_this_in_production
-   NODE_ENV=development
-   ```
-
-3. **Start the entire stack (PostgreSQL + API):**
-   ```bash
-   docker-compose up -d
-   ```
-
-   The backend API runs on `http://localhost:5000`
-   The database runs on `localhost:5432`
-
-4. **View logs:**
-   ```bash
-   docker-compose logs -f api
-   ```
-
-5. **Stop the stack:**
-   ```bash
-   docker-compose down
-   ```
-
-#### Create First Admin Account
-
-```bash
-curl -X POST http://localhost:5000/api/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "your_password",
-    "email": "admin@doll-trap.com"
-  }'
-```
-
-#### Local Development (without Docker)
-
-If you prefer to run locally without Docker:
-
-1. **Prerequisites:**
-   - Node.js (v16+) - [Download](https://nodejs.org/)
-   - PostgreSQL (v12+) - [Download](https://www.postgresql.org/download/)
-
-2. **Navigate to backend directory:**
-   ```bash
-   cd backend
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-
-4. **Setup environment variables:**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your local database credentials
-   ```
-
-5. **Create PostgreSQL database:**
-   ```bash
-   createdb doll_trap
-   ```
-
-6. **Start the server:**
-   ```bash
-   npm start
-   ```
-   Server runs on `http://localhost:5000`
-
-   For development with auto-reload:
-   ```bash
-   npm run dev
-   ```
-
-## 🎯 Admin Panel
-
-Access the admin panel at `/admin.html` (when running locally).
-
-**Features:**
-- 🔐 Secure login with JWT tokens
-- 📅 Create, edit, and delete events
-- 🗂️ Create albums stored in the same `events` table
-- 📸 Upload photos with drag-and-drop
-- 🏷️ Associate photos with events or albums
-- 👤 Tag photos by member
-- 🗑️ Manage events and photos
-
-## 📡 API Endpoints
-
-### Authentication
-- `POST /api/auth/login` - Admin login
-- `POST /api/auth/register` - Create admin account
-
-### Events
-- `GET /api/events` - Get all events and albums
-- `GET /api/events/:id` - Get single event/album
-- `POST /api/events` - Create event or album (auth required)
-- `PUT /api/events/:id` - Update event or album (auth required)
-- `DELETE /api/events/:id` - Delete event or album (auth required)
-
-### Photos
-- `GET /api/photos` - Get all photos
-- `GET /api/photos/event/:event_id` - Get photos for specific event
-- `POST /api/photos` - Upload photo (auth required, multipart/form-data)
-- `PUT /api/photos/:id` - Update photo metadata / linked event (auth required)
-- `DELETE /api/photos/:id` - Delete photo (auth required)
-
-## 🗄️ Database Schema
-
-### Users Table
-```sql
-CREATE TABLE users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(100) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  email VARCHAR(100) UNIQUE,
-  role VARCHAR(50) DEFAULT 'admin',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-```
-
-### Events Table
-```sql
-CREATE TABLE events (
-  id SERIAL PRIMARY KEY,
-  title VARCHAR(255) NOT NULL,
-  description TEXT,
-   date TIMESTAMP,
-  location VARCHAR(255),
-  image_url VARCHAR(255),
-   event_category VARCHAR(100),
-   kind VARCHAR(20) NOT NULL DEFAULT 'event',
-  created_by INTEGER REFERENCES users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-```
-
-- `kind = 'event'` records appear on the home page and calendar
-- `kind = 'album'` records are hidden from calendar/home and used by the gallery/admin
-
-### Photos Table
-```sql
-CREATE TABLE photos (
-  id SERIAL PRIMARY KEY,
-  event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
-  photo_url VARCHAR(255) NOT NULL,
-  caption TEXT,
-   member_tag VARCHAR(100),
-  uploaded_by INTEGER REFERENCES users(id),
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-```
-
-### Future: Game Features (Pre-built tables)
-```sql
-CREATE TABLE game_users (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  points INTEGER DEFAULT 0,
-  level INTEGER DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-
-CREATE TABLE inventory (
-  id SERIAL PRIMARY KEY,
-  game_user_id INTEGER REFERENCES game_users(id),
-  item_id VARCHAR(100),
-  quantity INTEGER DEFAULT 1,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)
-```
-
-## 🔧 Configuration
-
-### Database Connection
-Edit `backend/config/database.js` to customize database setup.
-
-### Upload Settings
-Edit `backend/routes/photos.js` to modify:
-- File size limits (default: 50MB)
-- Allowed file types (JPEG, PNG, GIF, WebP)
-- Supabase Storage upload behavior
-
-For all new uploads, the backend writes the file to Supabase Storage first and then stores the returned public URL in the `photos` table. This means new images do not depend on the Render instance staying awake or keeping a local `uploads/` folder.
-
-Required env vars for reliable new uploads:
-
-```bash
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-```
-
-`SUPABASE_KEY` can still be used as a fallback, but `SUPABASE_SERVICE_ROLE_KEY` is recommended for server-side uploads.
-
-### Legacy Photo Migration
-If old records still point to `/uploads/...`, migrate them to Supabase Storage so they survive deploys and restarts:
+### Start the backend
 
 ```bash
 cd backend
-npm run migrate:legacy-photos
+npm install
+npm run dev
 ```
 
-To preview what would be migrated without changing anything:
+The server starts on **http://localhost:5001** (port 5001 — macOS reserves 5000 for AirPlay).
+
+> If you changed `PORT` in `.env`, use that port instead.
+
+### Test it's running
 
 ```bash
-cd backend
-node scripts/migrate-legacy-photos.js --dry-run
+curl http://localhost:5001/api/health
+# → {"status":"Backend is running"}
 ```
 
-### CORS Settings
-Edit `backend/server.js` to configure CORS for different domains in production.
+### Admin panel (local)
 
-## 📚 Future Expansion
+Open `docs/admin.html` in a browser. The admin panel auto-detects whether to use `localhost:5001` or the production Render URL based on the current hostname.
 
-The backend structure is designed for easy expansion:
+Login with any of the three admin accounts (password: `Admin123!`):
+- `admin`
+- `buzzly`
+- `hitomi`
 
-**Ready for addition:**
-- User profiles & authentication
-- Points/levels system
-- In-app purchases (buying items/upgrades)
-- Inventory management
-- Leaderboards
-- Social features (comments, likes)
+## Environment Variables
 
-All necessary database tables for game features are pre-created.
+Copy `backend/.env.example` to `backend/.env` and fill in:
 
-## 🚢 Deployment
-
-### Frontend (GitHub Pages)
-- Push the repository with `docs/` configured as the Pages source
-- No additional setup needed
-
-### Backend Deployment (Docker)
-
-**Deploy to Cloud Services:**
-
-Since the backend is containerized with Docker, you can easily deploy to:
-
-**Railway.app (Recommended - Free tier available):**
-1. Push code to GitHub
-2. Connect repository to Railway
-3. Add PostgreSQL addon
-4. Set environment variables from `.env.example`
-5. Deploy automatically
-
-**Render.com (Free tier available):**
-1. Push code to GitHub
-2. Create new Web Service
-3. Connect GitHub repository
-4. Add PostgreSQL service
-5. Set environment variables
-6. Deploy
-
-**AWS ECS/EC2:**
 ```bash
-# Build and push to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <your-ecr-uri>
-docker build -t doll-trap-backend .
-docker tag doll-trap-backend:latest <your-ecr-uri>/doll-trap-backend:latest
-docker push <your-ecr-uri>/doll-trap-backend:latest
+# Neon PostgreSQL (free tier, no auto-pause)
+DB_HOST=<your-neon-host>
+DB_PORT=5432
+DB_NAME=neondb
+DB_USER=neondb_owner
+DB_PASSWORD=<your-neon-password>
+
+# JWT
+JWT_SECRET=<strong-random-string>
+
+# Server
+PORT=5001
+NODE_ENV=development
+
+# Supabase Storage (for image uploads — separate from the DB)
+SUPABASE_URL=https://<your-project>.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
 ```
 
-**Docker Swarm or Kubernetes:**
+## Database
+
+**PostgreSQL on [Neon](https://neon.tech)** (free tier, never auto-pauses).
+**Images** are stored in **Supabase Storage** (unaffected by Neon migration).
+
+Tables are created automatically on first startup via `initDB()` in `database.js`. No manual migrations needed.
+
+### Schema summary
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Admin accounts |
+| `events` | Events (`kind='event'`) and albums (`kind='album'`) |
+| `photos` | Photos linked to events/albums, stored in Supabase Storage |
+| `videos` | YouTube/video links |
+| `members` | Public member accounts (separate from admins) |
+| `member_saved_events` | Events saved by members |
+| `member_saved_photos` | Photos saved by members |
+| `member_checkins` | Event check-ins by members |
+| `game_users` / `inventory` | Pre-built tables for future game features |
+
+## API Endpoints
+
+### Admin auth — `/api/auth`
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/login` | — | Admin login → JWT |
+| POST | `/register` | — | Create admin account |
+| GET | `/verify` | Admin | Verify token |
+| POST | `/change-password` | Admin | Change password |
+
+### Events — `/api/events`
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | — | All events and albums |
+| GET | `/:id` | — | Single event/album |
+| POST | `/` | Admin | Create event or album |
+| PUT | `/:id` | Admin | Update event or album |
+| DELETE | `/:id` | Admin | Delete event or album (cascades to photos) |
+| POST | `/upload-poster` | Admin | Upload poster image to Supabase Storage |
+
+### Photos — `/api/photos`
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | — | All photos |
+| GET | `/event/:event_id` | — | Photos for a specific event |
+| POST | `/` | Admin | Upload photo (multipart, max 50MB) |
+| PUT | `/:id` | Admin | Update caption / member tag / event link |
+| DELETE | `/:id` | Admin | Delete photo (also removes file from Supabase Storage) |
+
+### Videos — `/api/videos`
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/` | — | All videos |
+| GET | `/event/:event_id` | — | Videos for a specific event |
+| POST | `/` | Admin | Add video |
+| PUT | `/:id` | Admin | Update video |
+| DELETE | `/:id` | Admin | Delete video |
+
+### Members — `/api/members`
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| POST | `/register` | — | Member sign-up |
+| POST | `/login` | — | Member login → JWT |
+| GET | `/verify` | Member | Verify member token |
+| PUT | `/profile` | Member | Update display name |
+| POST | `/change-password` | Member | Change password |
+| GET | `/saves/events` | Member | Get saved events |
+| POST | `/saves/events/:id` | Member | Save an event |
+| DELETE | `/saves/events/:id` | Member | Unsave an event |
+| GET | `/saves/photos` | Member | Get saved photos |
+| POST | `/saves/photos/:id` | Member | Save a photo |
+| DELETE | `/saves/photos/:id` | Member | Unsave a photo |
+| GET | `/checkins` | Member | Get check-ins |
+| POST | `/checkins/:event_id` | Member | Check in to event |
+| DELETE | `/checkins/:event_id` | Member | Remove check-in |
+| POST | `/my-status` | Member | Batch fetch save/check-in state |
+
+## Docker (optional)
+
+The `docker-compose.yml` runs only the API container. The DB is external (Neon).
+
 ```bash
-# Using Docker Swarm
-docker stack deploy -c docker-compose.yml doll-trap
-
-# Using Kubernetes
-kubectl apply -f k8s-manifest.yaml
-```
-
-**Local Docker Deployment:**
-```bash
-# Build image
-docker build -t doll-trap-backend ./backend
-
-# Run with external PostgreSQL
-docker run -p 5000:5000 \
-  -e DB_HOST=your-db-host \
-  -e DB_PASSWORD=your-password \
-  -e JWT_SECRET=your-secret \
-  doll-trap-backend
-```
-
-## 🔐 Production Checklist
-
-- [ ] Change `JWT_SECRET` to a strong random string
-- [ ] Set `NODE_ENV=production`
-- [ ] Configure CORS for production domain
-- [ ] Setup HTTPS/SSL certificate
-- [ ] Configure database backups
-- [x] Use cloud storage for uploads (Supabase Storage)
-- [ ] Setup monitoring and logging
-- [ ] Add rate limiting
-- [ ] Implement input validation
-
-## 🐛 Troubleshooting
-
-### Docker Issues
-
-**Docker containers won't start:**
-```bash
-# Check Docker status
-docker ps -a
-docker logs doll-trap-api
-docker logs doll-trap-db
-
-# Restart everything
-docker-compose down
+# Start
 docker-compose up -d
-```
 
-**Port already in use:**
-```bash
-# Kill process using port 5000
-lsof -i :5000
-kill -9 <PID>
+# Logs
+docker-compose logs -f api
 
-# Or use different port in .env
-# Change PORT=5000 to PORT=3000
+# Stop
 docker-compose down
-docker-compose up -d
-```
 
-**Database connection failed:**
-```bash
-# Ensure postgres is running and healthy
-docker-compose ps
-
-# Check database logs
-docker logs doll-trap-db
-
-# Verify .env settings match docker-compose.yml
-cat .env
-```
-
-**Rebuild image after code changes:**
-```bash
-docker-compose down
+# Rebuild after code changes
 docker-compose up -d --build
 ```
 
-### Local Development Issues
+The container maps port `8000` → internal `5000`. Set `PORT=5000` in `.env` when running via Docker.
 
-### Cannot connect to PostgreSQL
-```bash
-# Check if PostgreSQL is running
-brew services list  # macOS
-psql -U postgres   # Test connection
-```
+## Deployment
 
-### Port 5000 already in use
-```bash
-# Find and kill process using port 5000
-lsof -i :5000
-kill -9 <PID>
-```
+**Frontend:** Push to GitHub — GitHub Pages serves `docs/` automatically.
 
-### CORS errors in admin panel
-- Ensure backend is running on http://localhost:5000
-- Check CORS configuration in server.js
-- Browser must be on same origin or CORS must be enabled
+**Backend:** Deployed on [Render](https://render.com) as a Docker web service. Set all env vars from the table above in the Render dashboard.
 
-### File uploads failing
-- Check Supabase environment variables are set correctly
-- Verify the `doll-trap` storage bucket exists
-- Verify file size is under 50MB limit
-- Check file type is allowed (JPEG, PNG, GIF, WebP)
+## Production Checklist
 
-## 📝 License
+- [x] CORS restricted to `dolltrap.github.io` and `localhost`
+- [x] Images stored in Supabase Storage (survive deploys)
+- [x] Database on Neon (no auto-pause on free tier)
+- [x] Photo delete cleans up Supabase Storage file
+- [x] Password validation on admin register (min 8 chars)
+- [ ] Change default admin passwords from `Admin123!`
+- [ ] Strong `JWT_SECRET` in production
+- [ ] Add rate limiting to auth endpoints
+- [ ] Set up monitoring / logging
 
-This project is property of Doll Trap. All rights reserved.
+## Troubleshooting
 
-## 👥 Contact
+**Port 5000 in use (macOS AirPlay):** Use `PORT=5001` in `.env`.
 
-For questions or feature requests, contact the admin panel.
+**`ENOTFOUND` on startup:** Neon or Supabase host unreachable — check your `DB_HOST` in `.env`.
+
+**Photo uploads failing:**
+- Check `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set
+- Verify the `doll-trap` bucket exists in Supabase Storage
+- Max file size is 50MB; allowed types: JPEG, PNG, GIF, WebP
+
+**CORS errors in browser:** Make sure you're accessing the admin panel from `localhost` or `dolltrap.github.io`.
 
 ---
 
-**Made with 💗 for Doll Trap**
+*Property of Doll Trap. All rights reserved.*

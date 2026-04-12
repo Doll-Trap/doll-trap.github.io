@@ -12,10 +12,11 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="members.html">Members</a>
-      <a href="calendar.html">Calendar</a>
+      <a href="calendar.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
       <a href="#contact">Contact</a>
-      <a id="loginNavBtn" href="admin.html">Admin Login</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
     </nav>
 
     <!-- Members Section -->
@@ -51,20 +52,30 @@
     <script>
       const authToken = localStorage.getItem('authToken');
 
-      function updateAdminLinkState() {
-        const loginButton = document.getElementById('loginNavBtn');
-        if (!loginButton) return;
-
-        if (authToken) {
-          loginButton.textContent = 'Admin Dashboard';
-          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         } else {
-          loginButton.textContent = 'Admin Login';
-          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         }
       }
-
-      // Member data
       const membersData = [
         {
           id: 1,
@@ -151,7 +162,7 @@
       }
 
       // Initialize
-      updateAdminLinkState();
+      updateNavLoginState();
       renderMembers();
 
       // Navigation buttons

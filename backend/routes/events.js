@@ -9,12 +9,33 @@ const posterUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    cb(null, allowed.includes(file.mimetype));
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif'];
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif'];
+    const hasValidMime = allowedMimes.includes(file.mimetype);
+    const hasValidExt = allowedExtensions.some(e => file.originalname.toLowerCase().endsWith(e));
+    if (hasValidMime || hasValidExt) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP allowed'));
+    }
   }
 });
 
 const router = express.Router();
+
+// Supabase client (module-level, reused across requests)
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+let _supabaseClient = null;
+function getSupabaseClient() {
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase storage is not configured.');
+  }
+  if (!_supabaseClient) {
+    _supabaseClient = createClient(supabaseUrl, supabaseKey);
+  }
+  return _supabaseClient;
+}
 
 let legacyCategoryColumnExistsPromise;
 
@@ -60,13 +81,7 @@ router.post('/upload-poster', authMiddleware, posterUpload.single('poster'), asy
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
-    if (!supabaseUrl || !supabaseKey) {
-      return res.status(500).json({ error: 'Supabase storage not configured' });
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = getSupabaseClient();
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const filename = `poster-${uniqueSuffix}${path.extname(req.file.originalname)}`;
     const filePath = `posters/${filename}`;

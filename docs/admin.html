@@ -54,10 +54,14 @@
                 <span class="sidebar-icon">📸</span>
                 <span class="sidebar-label">Photos</span>
               </button>
+              <button class="sidebar-nav-btn" onclick="switchSection('videos', this)">
+                <span class="sidebar-icon">🎬</span>
+                <span class="sidebar-label">Videos</span>
+              </button>
 
               <!-- Bottom actions -->
               <div class="sidebar-divider"></div>
-              <button class="sidebar-nav-btn" id="accountSettingsBtn" onclick="document.getElementById('accountSettingsModal').classList.add('active')">
+              <button class="sidebar-nav-btn" id="accountSettingsBtn" onclick="switchSection('account', this)">
                 <span class="sidebar-icon">⚙️</span>
                 <span class="sidebar-label">Account</span>
               </button>
@@ -134,13 +138,16 @@
                 <div class="form-group">
                   <label>Event Poster</label>
                   <div style="display:flex; flex-direction:column; gap:8px;">
+                    <input type="file" id="posterFileInput" accept="image/*" style="display:none;">
                     <div class="upload-area" id="posterUploadArea" style="padding: 14px; text-align:center; cursor:pointer;" onclick="document.getElementById('posterFileInput').click()">
                       <p style="margin:0; font-size:13px; color:#94a3b8;">📤 Click to upload poster image</p>
-                      <input type="file" id="posterFileInput" accept="image/*" style="display:none;">
                     </div>
-                    <div id="posterPreviewWrap" style="display:none; position:relative;">
-                      <img id="posterPreview" src="" alt="Poster Preview" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px;">
-                      <button type="button" onclick="clearPosterUpload()" style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.55); color:white; border:none; border-radius:50%; width:26px; height:26px; cursor:pointer; font-size:14px; line-height:1;">&times;</button>
+                    <div id="posterPreviewWrap" style="display:none; position:relative; cursor:pointer;" onclick="document.getElementById('posterFileInput').click()" title="Click to change poster">
+                      <img id="posterPreview" src="" alt="Poster Preview" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; display:block;">
+                      <div style="position:absolute; inset:0; background:rgba(0,0,0,0); border-radius:8px; display:flex; align-items:center; justify-content:center; transition:background 0.2s;" class="poster-change-overlay">
+                        <span style="color:white; font-size:13px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:20px; opacity:0; transition:opacity 0.2s;" class="poster-change-label">🔄 Click to change</span>
+                      </div>
+                      <button type="button" onclick="event.stopPropagation(); clearPosterUpload()" style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.55); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:16px; line-height:1; z-index:2;" title="Remove poster">&times;</button>
                     </div>
                     <div style="display:flex; align-items:center; gap:8px;">
                       <div style="flex:1; height:1px; background:var(--border);"></div>
@@ -223,6 +230,76 @@
             </div>
           </div>
         </div>
+        <!-- Videos Section -->
+        <div id="videosSection" class="admin-section">
+          <div class="dashboard">
+            <!-- Add / Edit Video Panel -->
+            <div class="panel" id="addVideoPanel">
+              <div class="panel-header" onclick="togglePanel(this.parentElement)">
+                <h2>🎬 Add Video</h2>
+                <span class="panel-toggle-icon">▼</span>
+              </div>
+              <div class="panel-body">
+                <form id="videoForm">
+                  <div class="form-group">
+                    <label>Title <span style="color:#ef4444;">*</span></label>
+                    <input type="text" id="videoTitle" required placeholder="e.g. Summer Live Performance">
+                  </div>
+                  <div class="form-group">
+                    <label>Video URL <span style="color:#ef4444;">*</span></label>
+                    <input type="url" id="videoUrl" required placeholder="https://youtube.com/watch?v=... or any link">
+                    <p style="margin:4px 0 0; font-size:12px; color:#94a3b8;">YouTube, Bilibili, Instagram, TikTok — any link works</p>
+                  </div>
+                  <div class="form-group">
+                    <label>Related Event / Album</label>
+                    <select id="videoEvent" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg-dark);color:var(--text);">
+                      <option value="">Not linked to an event</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Description <span style="color:#94a3b8;font-size:12px;">(optional)</span></label>
+                    <textarea id="videoDescription" rows="2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg-dark);color:var(--text);resize:vertical;" placeholder="Short description…"></textarea>
+                  </div>
+                  <button type="submit" id="videoSubmitBtn">Add Video</button>
+                  <button type="button" id="videoCancelEditBtn" class="hidden" style="margin-top:10px;background:#94a3b8;">Cancel Edit</button>
+                </form>
+                <p id="videoMessage" class="alert success hidden" style="margin-top:10px;"></p>
+              </div>
+            </div>
+
+            <!-- All Videos Panel -->
+            <div class="panel">
+              <h2>📋 All Videos</h2>
+              <div id="allVideosList" class="list-items" style="max-height:600px;overflow-y:auto;"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Section -->
+        <div id="accountSection" class="admin-section">
+          <div class="dashboard">
+            <div class="panel" style="max-width: 480px;">
+              <h2>⚙️ Account Settings</h2>
+              <form id="changePasswordForm" class="account-form">
+                <div class="form-group">
+                  <label>Current Password</label>
+                  <input type="password" id="currentPassword" required>
+                </div>
+                <div class="form-group">
+                  <label>New Password</label>
+                  <input type="password" id="newPassword" minlength="8" required>
+                </div>
+                <div class="form-group">
+                  <label>Confirm New Password</label>
+                  <input type="password" id="confirmNewPassword" minlength="8" required>
+                </div>
+                <button type="submit">Update Password</button>
+              </form>
+              <p id="passwordMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+            </div>
+          </div>
+        </div>
+
           </div><!-- /main-content -->
         </div><!-- /admin-layout -->
       </div>
@@ -262,30 +339,6 @@
         </div>
       </div>
 
-      <div id="accountSettingsModal" class="edit-modal">
-        <div class="edit-modal-content">
-          <div class="edit-modal-header">
-            <h2>Account Settings</h2>
-            <button class="edit-modal-close" type="button" onclick="closeAccountSettingsModal()">&times;</button>
-          </div>
-          <form id="changePasswordForm" class="account-form">
-            <div class="form-group">
-              <label>Current Password</label>
-              <input type="password" id="currentPassword" required>
-            </div>
-            <div class="form-group">
-              <label>New Password</label>
-              <input type="password" id="newPassword" minlength="8" required>
-            </div>
-            <div class="form-group">
-              <label>Confirm New Password</label>
-              <input type="password" id="confirmNewPassword" minlength="8" required>
-            </div>
-            <button type="submit">Update Password</button>
-          </form>
-          <p id="passwordMessage" class="alert success hidden" style="margin-top: 10px;"></p>
-        </div>
-      </div>
     </div>
 
     <script src="admin.js"></script>

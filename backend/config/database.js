@@ -1,4 +1,6 @@
 const { Pool } = require('pg');
+const dns = require('dns');
+dns.setDefaultResultOrder('ipv4first');
 require('dotenv').config();
 
 const pool = new Pool({
@@ -175,6 +177,58 @@ const initDB = async () => {
       console.error('Migration: events.end_time ADD COLUMN failed:', e.message);
     }
 
+    // Members table (public user accounts, separate from admin users)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS members (
+        id SERIAL PRIMARY KEY,
+        display_name VARCHAR(100) NOT NULL,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        avatar_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS member_saved_events (
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (member_id, event_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS member_saved_photos (
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        photo_id INTEGER REFERENCES photos(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (member_id, photo_id)
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS member_checkins (
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        event_id INTEGER REFERENCES events(id) ON DELETE CASCADE,
+        checked_in_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (member_id, event_id)
+      )
+    `);
+
+    // Videos table
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS videos (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        url TEXT NOT NULL,
+        description TEXT,
+        event_id INTEGER REFERENCES events(id) ON DELETE SET NULL,
+        thumbnail_url TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Future: Game features tables
     await pool.query(`
       CREATE TABLE IF NOT EXISTS game_users (
@@ -200,6 +254,7 @@ const initDB = async () => {
     console.log('✅ Database initialized successfully');
   } catch (error) {
     console.error('❌ Database initialization error:', error);
+    throw error;
   }
 };
 

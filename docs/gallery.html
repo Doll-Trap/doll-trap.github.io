@@ -12,10 +12,11 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="members.html">Members</a>
-      <a href="calendar.html">Calendar</a>
+      <a href="calendar.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
       <a href="#contact">Contact</a>
-      <a id="loginNavBtn" href="admin.html">Admin Login</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
     </nav>
 
     <!-- Gallery Section -->
@@ -49,6 +50,7 @@
             <div id="eventDetailDate" class="event-detail-row" style="display:none;"></div>
             <div id="eventDetailLocation" class="event-detail-row" style="display:none;"></div>
             <div id="eventDetailDesc" class="event-detail-row" style="display:none;"></div>
+            <div id="eventDetailVideos" class="event-video-links" style="display:none;"></div>
           </div>
         </div>
 
@@ -74,28 +76,56 @@
     </div>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
       const API_ORIGIN = API_URL.replace('/api', '');
       const authToken = localStorage.getItem('authToken');
+      let memberToken = localStorage.getItem('memberToken');
+      let savedPhotoIds = new Set();
       let currentModalPhotos = [];
       let currentModalIndex = 0;
 
-      function updateAdminLinkState() {
-        const loginButton = document.getElementById('loginNavBtn');
-        if (!loginButton) return;
-
-        if (authToken) {
-          loginButton.textContent = 'Admin Dashboard';
-          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         } else {
-          loginButton.textContent = 'Admin Login';
-          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         }
       }
 
       let allPhotos = [];
       let allEvents = [];
+      let allVideos = [];
       let currentMemberFilter = '';
+
+      function getYouTubeId(url) {
+        const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/);
+        return m ? m[1] : null;
+      }
+
+      function getVideoThumbnail(v) {
+        if (v.thumbnail_url) return v.thumbnail_url;
+        const ytId = getYouTubeId(v.url);
+        return ytId ? `https://img.youtube.com/vi/${ytId}/hqdefault.jpg` : null;
+      }
 
       function getEventKind(event) {
         return event.kind || (event.date ? 'event' : 'album');
@@ -344,7 +374,28 @@
               posterWrap.style.display = 'none';
             }
 
-            const hasDetails = eventObj.date || eventObj.location || eventObj.description || eventObj.image_url;
+            // Related videos
+            const videosEl = document.getElementById('eventDetailVideos');
+            const relatedVideos = allVideos.filter(v => String(v.event_id) === String(eventObj.id));
+            if (relatedVideos.length > 0) {
+              videosEl.style.display = 'flex';
+              videosEl.innerHTML = `<p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#5b5f7a;">🎬 Videos</p>` +
+                relatedVideos.map(v => {
+                  const thumb = getVideoThumbnail(v);
+                  const thumbHtml = thumb
+                    ? `<img src="${thumb}" alt="${v.title}" class="event-video-link-thumb">`
+                    : `<div class="event-video-link-icon">🎬</div>`;
+                  return `<a class="event-video-link-item" href="${v.url}" target="_blank" rel="noopener noreferrer">
+                    ${thumbHtml}
+                    <span class="event-video-link-title">${v.title}</span>
+                    <span class="event-video-link-arrow">↗</span>
+                  </a>`;
+                }).join('');
+            } else {
+              videosEl.style.display = 'none';
+            }
+
+            const hasDetails = eventObj.date || eventObj.location || eventObj.description || eventObj.image_url || relatedVideos.length > 0;
             eventDetailBanner.style.display = hasDetails ? 'flex' : 'none';
           } else {
             eventDetailBanner.style.display = 'none';
@@ -364,10 +415,12 @@
         albumGrid.innerHTML = photos.map((photo, index) => {
           const url = resolvePhotoUrl(photo);
           const memberTag = photo.member_tag || 'Group';
+          const isSaved = savedPhotoIds.has(photo.id);
           return `
             <div class="gallery-item">
               <img src="${url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}" onclick="openImageModal(${index})">
               <p class="photo-member">${memberTag}</p>
+              ${memberToken ? `<button class="photo-heart-btn${isSaved ? ' saved' : ''}" data-photo-id="${photo.id}" onclick="toggleSavePhoto(${photo.id}, event)">${isSaved ? '\u2665' : '\u2661'}</button>` : ''}
             </div>
           `;
         }).join('');
@@ -375,6 +428,9 @@
         folderContainer.style.display = 'none';
         albumView.style.display = 'block';
         setupImageModal();
+        // Load member saved photo statuses
+        const photoIds = photos.map(p => p.id);
+        loadMemberPhotoStatus(photoIds);
       }
 
       document.getElementById('backToFoldersBtn').addEventListener('click', () => {
@@ -384,13 +440,15 @@
 
       async function loadGallery() {
         try {
-          const [photosResponse, eventsResponse] = await Promise.all([
+          const [photosResponse, eventsResponse, videosResponse] = await Promise.all([
             fetch(`${API_URL}/photos`),
-            fetch(`${API_URL}/events`)
+            fetch(`${API_URL}/events`),
+            fetch(`${API_URL}/videos`)
           ]);
 
           allPhotos = await photosResponse.json();
           allEvents = await eventsResponse.json();
+          if (videosResponse.ok) allVideos = await videosResponse.json();
 
           renderFolderCards();
           setupImageModal();
@@ -406,8 +464,51 @@
         }
       }
 
-      updateAdminLinkState();
+      updateNavLoginState();
       loadGallery();
+
+      // ── Member: save / unsave photos ───────────
+      async function loadMemberPhotoStatus(photoIds) {
+        if (!memberToken || photoIds.length === 0) return;
+        try {
+          const res = await fetch(`${API_URL}/members/my-status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+            body: JSON.stringify({ event_ids: [], photo_ids: photoIds })
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          savedPhotoIds = new Set((data.saved_photos || []).map(Number));
+          // Update any visible heart buttons
+          document.querySelectorAll('.photo-heart-btn').forEach(btn => {
+            const pid = Number(btn.dataset.photoId);
+            const isSaved = savedPhotoIds.has(pid);
+            btn.textContent = isSaved ? '\u2665' : '\u2661';
+            btn.classList.toggle('saved', isSaved);
+          });
+        } catch (_) {}
+      }
+
+      async function toggleSavePhoto(photoId, e) {
+        e.stopPropagation();
+        if (!memberToken) { window.location.href = 'portal.html'; return; }
+        const isSaved = savedPhotoIds.has(photoId);
+        const method = isSaved ? 'DELETE' : 'POST';
+        try {
+          const res = await fetch(`${API_URL}/members/saves/photos/${photoId}`, {
+            method,
+            headers: { 'Authorization': `Bearer ${memberToken}` }
+          });
+          if (!res.ok) return;
+          if (isSaved) savedPhotoIds.delete(photoId);
+          else savedPhotoIds.add(photoId);
+          const btn = document.querySelector(`.photo-heart-btn[data-photo-id="${photoId}"]`);
+          if (btn) {
+            btn.textContent = savedPhotoIds.has(photoId) ? '\u2665' : '\u2661';
+            btn.classList.toggle('saved', savedPhotoIds.has(photoId));
+          }
+        } catch (err) { console.error(err); }
+      }
     </script>
   </body>
 </html>

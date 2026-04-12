@@ -408,6 +408,14 @@ button[type="submit"]:hover {
   display: none;
 }
 
+/* Poster preview hover overlay */
+#posterPreviewWrap:hover .poster-change-overlay {
+  background: rgba(0, 0, 0, 0.35) !important;
+}
+#posterPreviewWrap:hover .poster-change-label {
+  opacity: 1 !important;
+}
+
 .list-items {
   margin-top: 20px;
   max-height: 400px;

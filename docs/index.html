@@ -12,10 +12,11 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="members.html">Members</a>
-      <a href="calendar.html">Calendar</a>
+      <a href="calendar.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
       <a href="#contact">Contact</a>
-      <a id="loginNavBtn" href="admin.html">Admin Login</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
     </nav>
 
     <!-- Hero Section -->
@@ -58,11 +59,11 @@
       </div>
     </div>
 
-    <!-- Performance Section -->
-    <div class="section">
-      <h2>Next Performance</h2>
-      <div id="nextPerformance" class="next-performance">
-        <p style="text-align: center; color: #999;">Loading...</p>
+    <!-- Upcoming Event Section -->
+    <div class="upcoming-event-section">
+      <div class="upcoming-event-label">Upcoming Event!</div>
+      <div id="nextPerformance">
+        <p style="text-align:center;color:#999;padding:40px 0;">Loading…</p>
       </div>
     </div>
 
@@ -76,21 +77,35 @@
     </footer>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
       const API_ORIGIN = API_URL.replace('/api', '');
       const authToken = localStorage.getItem('authToken');
       const EVENT_CATEGORY_OPTIONS = ['Live', 'Performance', 'Community Event', 'Convention', 'Workshop', 'Collaboration', 'Other'];
 
-      function updateAdminLinkState() {
-        const loginButton = document.getElementById('loginNavBtn');
-        if (!loginButton) return;
-
-        if (authToken) {
-          loginButton.textContent = 'Admin Dashboard';
-          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         } else {
-          loginButton.textContent = 'Admin Login';
-          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         }
       }
 
@@ -134,60 +149,106 @@
         }
       }
       
-      // Load next event from API
+      // ── Upcoming event countdown ──────────────────────────────
+      let countdownTarget = null;
+      let countdownTimer = null;
+
+      function updateCountdown() {
+        if (!countdownTarget) return;
+        const now = new Date();
+        const diff = countdownTarget - now;
+        if (diff <= 0) {
+          document.getElementById('cdDays').textContent    = '0';
+          document.getElementById('cdHours').textContent   = '0';
+          document.getElementById('cdMinutes').textContent = '0';
+          document.getElementById('cdSeconds').textContent = '0';
+          return;
+        }
+        const days    = Math.floor(diff / 86400000);
+        const hours   = Math.floor((diff % 86400000) / 3600000);
+        const minutes = Math.floor((diff % 3600000) / 60000);
+        const seconds = Math.floor((diff % 60000) / 1000);
+        document.getElementById('cdDays').textContent    = days;
+        document.getElementById('cdHours').textContent   = hours;
+        document.getElementById('cdMinutes').textContent = minutes;
+        document.getElementById('cdSeconds').textContent = seconds;
+      }
+
       async function loadNextEvent() {
         try {
           const response = await fetch(`${API_URL}/events`);
           const events = await response.json();
-          
-          if (events.length === 0) {
-            document.getElementById('nextPerformance').innerHTML = 
-              '<p style="color: #999;">No upcoming events scheduled</p>';
-            return;
-          }
-          
-          // Sort by date and find next upcoming event
+
           const now = new Date();
           const upcomingEvents = events
             .filter(e => (e.kind || 'event') === 'event' && e.date && new Date(e.date) >= now)
             .sort((a, b) => new Date(a.date) - new Date(b.date));
-          
+
+          const el = document.getElementById('nextPerformance');
+
           if (upcomingEvents.length === 0) {
-            document.getElementById('nextPerformance').innerHTML = 
-              '<p style="color: #999;">No upcoming events scheduled</p>';
+            el.innerHTML = '<p style="text-align:center;color:#999;padding:40px 0;">No upcoming events scheduled</p>';
             return;
           }
-          
+
           const event = upcomingEvents[0];
           const eventDate = new Date(event.date);
           const eventCategory = getEventCategory(event);
-          const formattedDate = eventDate.toLocaleDateString('en-US', { 
-            month: 'long', 
-            day: 'numeric', 
-            year: 'numeric' 
+
+          const formattedDate = eventDate.toLocaleDateString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric'
           });
-          const formattedTime = eventDate.toLocaleTimeString('en-US', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          });
-          
-          document.getElementById('nextPerformance').innerHTML = `
-            <p class="performance-date">${formattedDate}</p>
-            <p class="performance-title">${event.title}</p>
-            <p class="performance-time">${formattedTime}</p>
-            ${eventCategory ? `<p class="performance-category"><strong>Category:</strong> ${eventCategory}</p>` : ''}
-            ${event.location ? `<p class="performance-location"><strong>Location:</strong> ${event.location}</p>` : ''}
-            <a href="calendar.html" class="view-all-events">View All Events →</a>
+          const hasTime = eventDate.getHours() !== 0 || eventDate.getMinutes() !== 0;
+          const formattedTime = hasTime
+            ? eventDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+            : null;
+
+          // Short description excerpt (first 120 chars)
+          let descExcerpt = '';
+          if (event.description) {
+            const cleaned = event.description.replace(/^[^–\-—]+[–\-—]\s*/,'').trim();
+            descExcerpt = cleaned.length > 120 ? cleaned.slice(0, 118) + '…' : cleaned;
+          }
+
+          el.innerHTML = `
+            ${eventCategory ? `<div class="ue-badge">${eventCategory}</div>` : ''}
+            <h2 class="ue-title">
+              <a href="event.html?id=${event.id}" class="ue-title-link">${event.title}</a>
+            </h2>
+            <div class="ue-meta">
+              <span>📅 ${formattedDate}${formattedTime ? ' · ' + formattedTime : ''}</span>
+              ${event.location ? `<span>📍 ${event.location}</span>` : ''}
+            </div>
+            ${descExcerpt ? `<p class="ue-desc">${descExcerpt}</p>` : ''}
+            ${event.image_url
+              ? `<a href="event.html?id=${event.id}"><img class="ue-poster" src="${event.image_url}" alt="${event.title}"></a>`
+              : ''}
+            <div class="ue-countdown">
+              <div class="ue-cd-box"><span id="cdDays">–</span><label>Days</label></div>
+              <div class="ue-cd-box"><span id="cdHours">–</span><label>Hours</label></div>
+              <div class="ue-cd-box"><span id="cdMinutes">–</span><label>Minutes</label></div>
+              <div class="ue-cd-box"><span id="cdSeconds">–</span><label>Seconds</label></div>
+            </div>
+            <div class="ue-actions">
+              <a href="event.html?id=${event.id}" class="ue-btn-primary">View Event →</a>
+              <a href="calendar.html" class="ue-btn-secondary">All Events</a>
+            </div>
           `;
+
+          countdownTarget = eventDate;
+          updateCountdown();
+          if (countdownTimer) clearInterval(countdownTimer);
+          countdownTimer = setInterval(updateCountdown, 1000);
+
         } catch (error) {
           console.error('Error loading event:', error);
-          document.getElementById('nextPerformance').innerHTML = 
-            '<p style="color: #999;">Unable to load events</p>';
+          document.getElementById('nextPerformance').innerHTML =
+            '<p style="text-align:center;color:#999;padding:40px 0;">Unable to load events</p>';
         }
       }
       
       // Load on page load
-      updateAdminLinkState();
+      updateNavLoginState();
       loadNextEvent();
       loadRandomHeroPhoto();
       

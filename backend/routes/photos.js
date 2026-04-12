@@ -15,7 +15,6 @@ function getSupabaseClient() {
   if (!supabaseUrl || !supabaseKey) {
     throw new Error('Supabase storage is not configured. Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_KEY).');
   }
-
   return createClient(supabaseUrl, supabaseKey);
 }
 
@@ -25,33 +24,35 @@ function isLegacyUpload(photoUrl) {
 
 function decoratePhotoRows(rows) {
   const legacyCount = rows.filter(row => isLegacyUpload(row.photo_url)).length;
-
   if (legacyCount > 0 && !hasWarnedAboutLegacyUploads) {
     console.warn(`⚠️ Detected ${legacyCount} legacy photo(s) still pointing to /uploads. Run \`npm run migrate:legacy-photos\` to move them to Supabase Storage.`);
     hasWarnedAboutLegacyUploads = true;
   }
-
-  return rows.map(row => ({
-    ...row,
-    is_legacy_upload: isLegacyUpload(row.photo_url)
-  }));
+  return rows.map(row => ({ ...row, is_legacy_upload: isLegacyUpload(row.photo_url) }));
 }
 
-// Configure multer for memory storage (we'll upload to Supabase)
-const storage = multer.memoryStorage();
+// Extract Supabase storage path from a public URL, e.g. "photos/photo-123.jpg"
+function extractStoragePath(publicUrl) {
+  if (!publicUrl || isLegacyUpload(publicUrl)) return null;
+  try {
+    const url = new URL(publicUrl);
+    // Supabase public URLs: /storage/v1/object/public/<bucket>/<path>
+    const marker = `/object/public/${STORAGE_BUCKET}/`;
+    const idx = url.pathname.indexOf(marker);
+    return idx !== -1 ? url.pathname.slice(idx + marker.length) : null;
+  } catch {
+    return null;
+  }
+}
 
 const upload = multer({
-  storage: storage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }, // 50MB limit
-  fileFilter: (req, file, cb) => {
+  fileFilter: (_req, file, cb) => {
     const allowedMimes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     const allowedExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
-    
-    // Check mimetype or file extension
-    const ext = file.originalname.toLowerCase().slice(-4);
     const hasValidMime = allowedMimes.includes(file.mimetype);
     const hasValidExt = allowedExtensions.some(e => file.originalname.toLowerCase().endsWith(e));
-    
     if (hasValidMime || hasValidExt) {
       cb(null, true);
     } else {
@@ -61,7 +62,7 @@ const upload = multer({
 });
 
 // Get all photos
-router.get('/', async (req, res) => {
+router.get('/', async (_req, res) => {
   try {
     const result = await pool.query(`
       SELECT p.id, p.event_id, p.photo_url, p.caption, p.member_tag,
@@ -100,25 +101,15 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
     }
 
     const supabase = getSupabaseClient();
-
     const { event_id, caption, member_tag } = req.body;
     const resolvedEventId = event_id || null;
-    console.log('Uploading photo with data:', {
-      event_id,
-      caption,
-      member_tag
-    });
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     const filename = `photo-${uniqueSuffix}${path.extname(req.file.originalname)}`;
     const filePath = `photos/${filename}`;
 
-    // Upload to Supabase Storage
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from(STORAGE_BUCKET)
-      .upload(filePath, req.file.buffer, {
-        contentType: req.file.mimetype,
-        upsert: false
-      });
+      .upload(filePath, req.file.buffer, { contentType: req.file.mimetype, upsert: false });
 
     if (error) {
       console.error('Supabase upload error:', error);
@@ -128,18 +119,12 @@ router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
       return res.status(500).json({ error: error.message || 'Failed to upload file to storage' });
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from(STORAGE_BUCKET)
-      .getPublicUrl(filePath);
+    const { data: { publicUrl } } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(filePath);
 
     if (!publicUrl || !publicUrl.startsWith('http')) {
       throw new Error('Storage upload succeeded but no valid public URL was returned.');
     }
 
-    console.log('Uploaded to Supabase:', publicUrl);
-
-    // Save to database
     const result = await pool.query(
       'INSERT INTO photos (event_id, photo_url, caption, member_tag, uploaded_by) VALUES ($1, $2, $3, $4, $5) RETURNING *',
       [resolvedEventId, publicUrl, caption || null, member_tag || 'Group', req.user.id]
@@ -157,11 +142,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { caption, member_tag, event_id } = req.body;
     const resolvedEventId = event_id || null;
-    console.log('Updating photo', req.params.id, 'with data:', {
-      caption,
-      member_tag,
-      event_id: resolvedEventId
-    });
 
     const result = await pool.query(
       'UPDATE photos SET caption = $1, member_tag = $2, event_id = $3 WHERE id = $4 RETURNING *',
@@ -172,7 +152,6 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    console.log('Photo updated successfully:', result.rows[0]);
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -188,7 +167,20 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Photo not found' });
     }
 
-    res.json({ message: 'Photo deleted', photo: result.rows[0] });
+    const photo = result.rows[0];
+
+    // Delete file from Supabase storage (best-effort, don't fail the request if this fails)
+    const storagePath = extractStoragePath(photo.photo_url);
+    if (storagePath) {
+      try {
+        const supabase = getSupabaseClient();
+        await supabase.storage.from(STORAGE_BUCKET).remove([storagePath]);
+      } catch (storageError) {
+        console.error('Failed to delete file from Supabase storage:', storageError.message);
+      }
+    }
+
+    res.json({ message: 'Photo deleted', photo });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

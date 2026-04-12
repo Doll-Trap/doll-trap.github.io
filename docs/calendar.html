@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Events Calendar - Doll Trap</title>
+    <title>Events - Doll Trap</title>
     <link rel="stylesheet" href="style.css">
   </head>
 
@@ -12,64 +12,81 @@
     <nav>
       <a href="index.html">Home</a>
       <a href="members.html">Members</a>
-      <a href="calendar.html">Calendar</a>
+      <a href="calendar.html">Events</a>
       <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
       <a href="#contact">Contact</a>
-      <a id="loginNavBtn" href="admin.html">Admin Login</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
     </nav>
 
-    <!-- Calendar Section -->
+    <!-- Events Page -->
     <div class="calendar-container">
-      <h1>Event Calendar</h1>
+      <h1>Events</h1>
 
-      <div class="legend">
-        <div class="legend-item">
-          <div class="legend-box upcoming"></div>
-          <span>Upcoming Event</span>
+      <!-- View Toggle -->
+      <div class="ev-view-toggle">
+        <button class="ev-view-btn active" id="btnCalView" onclick="switchView('calendar')">📅 Calendar</button>
+        <button class="ev-view-btn" id="btnListView" onclick="switchView('list')">☰ List</button>
+      </div>
+
+      <!-- ── Calendar View ── -->
+      <div id="calendarViewContainer">
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-box upcoming"></div>
+            <span>Upcoming Event</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-box past"></div>
+            <span>Past Event</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-box today"></div>
+            <span>Today</span>
+          </div>
         </div>
-        <div class="legend-item">
-          <div class="legend-box past"></div>
-          <span>Past Event</span>
-        </div>
-        <div class="legend-item">
-          <div class="legend-box today"></div>
-          <span>Today</span>
+
+        <div class="calendar-content-wrapper">
+          <div class="calendar-main">
+            <div class="calendar-controls">
+              <button id="prevBtn">← Previous</button>
+              <div class="calendar-month" id="monthYear"></div>
+              <button id="nextBtn">Next →</button>
+            </div>
+
+            <table class="calendar-table" id="calendarTable">
+              <thead>
+                <tr>
+                  <th>Sun</th>
+                  <th>Mon</th>
+                  <th>Tue</th>
+                  <th>Wed</th>
+                  <th>Thu</th>
+                  <th>Fri</th>
+                  <th>Sat</th>
+                </tr>
+              </thead>
+              <tbody id="calendarBody">
+              </tbody>
+            </table>
+          </div>
+
+          <div class="calendar-sidebar">
+            <div class="events-section" id="eventsSection">
+            </div>
+
+            <div class="next-event-section" id="nextEventSection">
+              <h3>Next Upcoming Event</h3>
+              <div id="nextEventContent"></div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="calendar-content-wrapper">
-        <div class="calendar-main">
-          <div class="calendar-controls">
-            <button id="prevBtn">← Previous</button>
-            <div class="calendar-month" id="monthYear"></div>
-            <button id="nextBtn">Next →</button>
-          </div>
-
-          <table class="calendar-table" id="calendarTable">
-            <thead>
-              <tr>
-                <th>Sun</th>
-                <th>Mon</th>
-                <th>Tue</th>
-                <th>Wed</th>
-                <th>Thu</th>
-                <th>Fri</th>
-                <th>Sat</th>
-              </tr>
-            </thead>
-            <tbody id="calendarBody">
-            </tbody>
-          </table>
-        </div>
-
-        <div class="calendar-sidebar">
-          <div class="events-section" id="eventsSection">
-          </div>
-
-          <div class="next-event-section" id="nextEventSection">
-            <h3>Next Upcoming Event</h3>
-            <div id="nextEventContent"></div>
-          </div>
+      <!-- ── List View ── -->
+      <div id="listViewContainer" style="display:none">
+        <div id="listViewContent">
+          <p style="text-align:center;color:#999;padding:40px 0;">Loading events…</p>
         </div>
       </div>
     </div>
@@ -83,7 +100,7 @@
       <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
     </footer>
 
-    <!-- Event Detail Modal -->
+    <!-- Event Detail Modal (kept for legacy fallback) -->
     <div id="eventDetailModal" class="event-modal-overlay" style="display:none;" onclick="closeEventModal(event)">
       <div class="event-modal-box">
         <button class="event-modal-close" onclick="closeEventModal()">&times;</button>
@@ -98,29 +115,48 @@
           <div id="eventModalDesc" class="event-modal-desc" style="display:none;"></div>
           <div class="event-modal-actions">
             <a id="eventModalPhotosLink" href="#" class="event-modal-photos-btn" style="display:none;">📸 View Photos</a>
+            <a id="eventModalVideosLink" href="videos.html" class="event-modal-photos-btn" style="display:none; background: linear-gradient(135deg, #7c3aed, #ec4899);">🎬 View All Videos</a>
           </div>
+          <div id="eventModalVideos" class="event-video-links" style="display:none;"></div>
         </div>
       </div>
     </div>
 
     <script>
-      const API_URL = 'https://doll-trap-github-io.onrender.com/api';
-      const authToken = localStorage.getItem('authToken');
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
+      let memberToken = localStorage.getItem('memberToken');
+      let allVideosData = [];
+      let allPhotosData = [];
+      let currentModalEventId = null;
 
-      function updateAdminLinkState() {
-        const loginButton = document.getElementById('loginNavBtn');
-        if (!loginButton) return;
-
-        if (authToken) {
-          loginButton.textContent = 'Admin Dashboard';
-          loginButton.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         } else {
-          loginButton.textContent = 'Admin Login';
-          loginButton.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
         }
       }
-      
-      // Will be populated from API
+
+      // ── State ──────────────────────────────────────────
       let events = {};
       let currentDate = new Date();
       let currentView = 'calendar';
@@ -135,141 +171,108 @@
 
       function getEventCategory(event) {
         const directCategory = normalizeEventCategory(event.event_category || event.category);
-        if (directCategory) {
-          return directCategory;
-        }
-
+        if (directCategory) return directCategory;
         const descriptionPrefix = event.description?.split(/\s[-–—]\s/)[0]?.trim();
         return normalizeEventCategory(descriptionPrefix);
       }
 
-      // Fetch events from API
-      async function loadEvents() {
-        try {
-          const response = await fetch(`${API_URL}/events`);
-          const apiEvents = await response.json();
-          
-          // Convert API events to calendar format
-          events = {};
-          apiEvents
-            .filter(event => (event.kind || 'event') === 'event' && event.date)
-            .forEach(event => {
-            const date = event.date.split('T')[0]; // Get YYYY-MM-DD
-            const eventTime = new Date(event.date).toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit' 
-            });
-            
-            if (!events[date]) {
-              events[date] = [];
-            }
-            const eventCategory = getEventCategory(event);
-            events[date].push({
-              id: event.id,
-              title: event.title,
-              type: eventCategory || 'Event',
-              time: eventTime,
-              end_time: event.end_time ? event.end_time.slice(0, 5) : null,
-              description: event.description,
-              location: event.location,
-              image_url: event.image_url || null,
-              category: eventCategory
-            });
-          });
-          
-          // Initial render
-          renderCalendar();
-          document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
-          displayNextEvent();
-        } catch (error) {
-          console.error('Error loading events:', error);
-          document.getElementById('eventsSection').innerHTML = '<h3>Error loading events</h3>';
+      // ── View Toggle ────────────────────────────────────
+      function switchView(view) {
+        currentView = view;
+        const calContainer = document.getElementById('calendarViewContainer');
+        const listContainer = document.getElementById('listViewContainer');
+        const btnCal = document.getElementById('btnCalView');
+        const btnList = document.getElementById('btnListView');
+
+        if (view === 'calendar') {
+          calContainer.style.display = '';
+          listContainer.style.display = 'none';
+          btnCal.classList.add('active');
+          btnList.classList.remove('active');
+        } else {
+          calContainer.style.display = 'none';
+          listContainer.style.display = '';
+          btnCal.classList.remove('active');
+          btnList.classList.add('active');
+          renderListView();
         }
       }
 
-      function getNextEvent() {
+      // ── List View ──────────────────────────────────────
+      function renderListView() {
+        const container = document.getElementById('listViewContent');
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        // Flatten all events with date objects
         const allEvents = [];
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
         for (const dateStr in events) {
-          const [yearStr, monthStr, dayStr] = dateStr.split('-');
-          const year = parseInt(yearStr);
-          const month = parseInt(monthStr) - 1;
-          const day = parseInt(dayStr);
-          const dateObj = new Date(year, month, day);
-
-          events[dateStr].forEach(event => {
-            allEvents.push({
-              date: dateStr,
-              dateObj: dateObj,
-              displayDate: dateObj.toLocaleDateString('en-US', { 
-                weekday: 'long', 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-              }),
-              ...event
-            });
+          const [y, m, d] = dateStr.split('-').map(Number);
+          const dateObj = new Date(y, m - 1, d);
+          events[dateStr].forEach(ev => {
+            allEvents.push({ ...ev, date: dateStr, dateObj });
           });
         }
-
-        // Sort by date and find first upcoming event
         allEvents.sort((a, b) => a.dateObj - b.dateObj);
-        const nextEvent = allEvents.find(event => {
-          const eventDate = new Date(event.dateObj);
-          eventDate.setHours(0, 0, 0, 0);
-          return eventDate >= today;
-        });
 
-        return nextEvent;
-      }
+        const upcoming = allEvents.filter(e => e.dateObj >= now);
+        const past     = allEvents.filter(e => e.dateObj < now).reverse(); // most recent first
 
-      function displayNextEvent() {
-        const nextEvent = getNextEvent();
-        const nextEventContent = document.getElementById('nextEventContent');
-
-        if (nextEvent) {
-          nextEventContent.innerHTML = `
-            <div class="next-event-card event-item-clickable" onclick="openEventModal(${JSON.stringify({}).replace(/"/g, '&quot;')})" data-event-key="next">
-              <div class="next-event-date">${nextEvent.displayDate}</div>
-              <h4>${nextEvent.title}</h4>
-              <p><span class="event-type">${nextEvent.category || nextEvent.type || 'Event'}</span></p>
-              <p><strong>Time:</strong> ${nextEvent.time}${nextEvent.end_time ? ` – ${nextEvent.end_time}` : ''}</p>
-              <button class="jump-btn" onclick="event.stopPropagation(); jumpToDate('${nextEvent.date}')">View in Calendar</button>
-              <span class="event-item-more" style="display:block; margin-top:8px;">View details →</span>
+        function buildCard(ev) {
+          const d = ev.dateObj;
+          const dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+          const badge = ev.category ? `<span class="ev-list-badge">${ev.category}</span>` : '';
+          const loc   = ev.location ? `<span class="ev-list-meta-item">📍 ${ev.location}</span>` : '';
+          const hasTime = ev.time && ev.time !== '12:00 AM';
+          const time  = hasTime ? `<span class="ev-list-meta-item">🕐 ${ev.time}${ev.end_time ? ' – ' + ev.end_time : ''}</span>` : '';
+          return `
+            <div class="ev-list-card" data-id="${ev.id || ''}">
+              <div class="ev-list-card-top">
+                ${badge}
+                <span class="ev-list-card-date">📅 ${dateStr}</span>
+              </div>
+              <h3 class="ev-list-card-title">${ev.title}</h3>
+              <div class="ev-list-card-meta">${time}${loc}</div>
+              <span class="ev-list-card-arrow">View details →</span>
             </div>
           `;
-          // Attach click with full data after render
-          document.querySelector('[data-event-key="next"]').addEventListener('click', function(e) {
-            if (e.target.classList.contains('jump-btn')) return;
-            openEventModal(nextEvent);
-          });
-        } else {
-          nextEventContent.innerHTML = '<div class="no-events">No upcoming events scheduled</div>';
         }
+
+        let html = '';
+        if (upcoming.length > 0) {
+          html += `<div class="ev-list-section-label">Upcoming</div>`;
+          html += upcoming.map(buildCard).join('');
+        }
+        if (past.length > 0) {
+          html += `<div class="ev-list-section-label past">Past Events</div>`;
+          html += past.map(ev => buildCard(ev)).join('');
+        }
+        if (allEvents.length === 0) {
+          html = '<p style="text-align:center;color:#999;padding:60px 0;">No events yet</p>';
+        }
+
+        container.innerHTML = html;
+
+        // Attach click handlers
+        container.querySelectorAll('.ev-list-card[data-id]').forEach(card => {
+          const id = card.dataset.id;
+          if (id) {
+            card.addEventListener('click', () => {
+              window.location.href = `event.html?id=${id}`;
+            });
+          }
+        });
       }
 
-      function jumpToDate(dateStr) {
-        const [yearStr, monthStr, dayStr] = dateStr.split('-');
-        const year = parseInt(yearStr);
-        const month = parseInt(monthStr) - 1;
-        const day = parseInt(dayStr);
-        currentDate = new Date(year, month, 1);
-        renderCalendar();
-        showEvents(dateStr);
-      }
-
+      // ── Calendar Render ────────────────────────────────
       function renderCalendar() {
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
 
-        // Update month/year display
         const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
           'July', 'August', 'September', 'October', 'November', 'December'];
         document.getElementById('monthYear').textContent = `${monthNames[month]} ${year}`;
 
-        // Get first day of month and number of days
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const daysInPrevMonth = new Date(year, month, 0).getDate();
@@ -287,137 +290,45 @@
             const cell = document.createElement('td');
 
             if (i === 0 && j < firstDay) {
-              // Previous month's dates
               cell.textContent = daysInPrevMonth - firstDay + j + 1;
               cell.classList.add('other-month');
             } else if (date > daysInMonth) {
-              // Next month's dates
               cell.textContent = nextMonthDate;
               cell.classList.add('other-month');
               nextMonthDate++;
             } else {
-              // Current month's dates
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
               cell.innerHTML = `<span class="day-number">${date}</span>`;
 
-              // Check if this date has events
               if (events[dateStr]) {
-                // Check if event is in the past or upcoming
                 const eventDate = new Date(year, month, date);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 eventDate.setHours(0, 0, 0, 0);
-                
-                if (eventDate < today) {
-                  cell.classList.add('past-event');
-                } else {
-                  cell.classList.add('has-event');
-                }
+                cell.classList.add(eventDate < today ? 'past-event' : 'has-event');
                 cell.innerHTML += '<span class="event-dot"></span>';
               }
 
-              // Check if it's today
               const today = new Date();
               if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                 cell.classList.add('today');
               }
 
               cell.dataset.date = dateStr;
-              cell.addEventListener('click', function() {
-                showEvents(dateStr);
-              });
-
+              cell.addEventListener('click', function() { showEvents(dateStr); });
               date++;
             }
 
             row.appendChild(cell);
           }
-
           calendarBody.appendChild(row);
         }
       }
 
-      function openEventModal(eventObj) {
-        const modal = document.getElementById('eventDetailModal');
-        document.getElementById('eventModalTitle').textContent = eventObj.title;
-
-        // Category tag
-        const tagEl = document.getElementById('eventModalCategory');
-        tagEl.textContent = eventObj.category || eventObj.type || 'Event';
-
-        // Date & time
-        const dateEl = document.getElementById('eventModalDate');
-        if (eventObj.displayDate || eventObj.date) {
-          const displayDate = eventObj.displayDate || (() => {
-            const [y,m,d] = eventObj.date.split('-');
-            return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-          })();
-          const timeStr = eventObj.time ? ` · ${eventObj.time}${eventObj.end_time ? ' – ' + eventObj.end_time : ''}` : '';
-          dateEl.innerHTML = `📅 ${displayDate}${timeStr}`;
-          dateEl.style.display = 'block';
-        } else {
-          dateEl.style.display = 'none';
-        }
-
-        // Location
-        const locEl = document.getElementById('eventModalLocation');
-        if (eventObj.location) {
-          locEl.innerHTML = `📍 ${eventObj.location}`;
-          locEl.style.display = 'block';
-        } else {
-          locEl.style.display = 'none';
-        }
-
-        // Description
-        const descEl = document.getElementById('eventModalDesc');
-        if (eventObj.description) {
-          descEl.innerHTML = eventObj.description.replace(/\n/g, '<br>');
-          descEl.style.display = 'block';
-        } else {
-          descEl.style.display = 'none';
-        }
-
-        // Poster image
-        const posterWrap = document.getElementById('eventModalPosterWrap');
-        const posterImg = document.getElementById('eventModalPoster');
-        if (eventObj.image_url) {
-          posterImg.src = eventObj.image_url;
-          posterWrap.style.display = 'block';
-        } else {
-          posterWrap.style.display = 'none';
-        }
-
-        // Photos link
-        const photosLink = document.getElementById('eventModalPhotosLink');
-        if (eventObj.id) {
-          photosLink.href = `gallery.html#event-${eventObj.id}`;
-          photosLink.style.display = 'inline-block';
-        } else {
-          photosLink.style.display = 'none';
-        }
-
-        modal.style.display = 'flex';
-        document.body.style.overflow = 'hidden';
-      }
-
-      function closeEventModal(e) {
-        if (e && e.target !== document.getElementById('eventDetailModal')) return;
-        document.getElementById('eventDetailModal').style.display = 'none';
-        document.body.style.overflow = '';
-      }
-
-      document.addEventListener('keydown', e => {
-        if (e.key === 'Escape') {
-          document.getElementById('eventDetailModal').style.display = 'none';
-          document.body.style.overflow = '';
-        }
-      });
-
       function showEvents(dateStr) {
         const [year, month, day] = dateStr.split('-');
         const dateObj = new Date(year, month - 1, day);
-        const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        const formattedDate = dateObj.toLocaleDateString('en-US', dateOptions);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
         const eventsList = document.getElementById('eventsSection');
         const dayEvents = events[dateStr];
@@ -435,7 +346,11 @@
           eventsList.querySelectorAll('[data-date]').forEach(el => {
             el.addEventListener('click', () => {
               const ev = calendarEventForDate(el.dataset.date, parseInt(el.dataset.idx));
-              openEventModal({ ...ev, displayDate: formattedDate });
+              if (ev && ev.id) {
+                window.location.href = `event.html?id=${ev.id}`;
+              } else {
+                openEventModal({ ...ev, displayDate: formattedDate });
+              }
             });
           });
         } else {
@@ -443,98 +358,188 @@
         }
       }
 
-      function renderListView() {
-        // Get all events from all months, sorted by date
-        const allEvents = [];
-
-        for (const dateStr in events) {
-          const [yearStr, monthStr, dayStr] = dateStr.split('-');
-          const year = parseInt(yearStr);
-          const month = parseInt(monthStr) - 1; // Convert to 0-indexed
-          const day = parseInt(dayStr);
-          const dateObj = new Date(year, month, day);
-          
-          events[dateStr].forEach(event => {
-            allEvents.push({
-              date: dateStr,
-              dateObj: dateObj,
-              displayDate: dateObj.toLocaleDateString('en-US', { 
-                weekday: 'short', 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric' 
-              }),
-              ...event
-            });
-          });
-        }
-
-        // Sort events by date
-        allEvents.sort((a, b) => a.dateObj - b.dateObj);
-
-        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
-          'July', 'August', 'September', 'October', 'November', 'December'];
-        
-        // Get current month info
-        const year = currentListDate.getFullYear();
-        const month = currentListDate.getMonth();
-        document.getElementById('listMonthYear').textContent = `${monthNames[month]} ${year}`;
-
-        // Filter events for the current month
-        const monthEvents = allEvents.filter(event => {
-          return event.dateObj.getFullYear() === year && event.dateObj.getMonth() === month;
-        });
-
-        const eventsList = document.getElementById('eventsList');
-        if (monthEvents.length > 0) {
-          eventsList.innerHTML = monthEvents.map(event => {
-            const eventDate = new Date(event.dateObj);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            eventDate.setHours(0, 0, 0, 0);
-            const isPast = eventDate < today;
-
-            return `
-              <div class="list-event-item ${isPast ? 'past' : 'upcoming'}">
-                <div class="list-event-date">${event.displayDate}</div>
-                <div class="list-event-details">
-                  <h4>${event.title}</h4>
-                  <p><span class="event-type">${event.category || event.type || 'Event'}</span></p>
-                  <p><strong>Time:</strong> ${event.time}</p>
-                </div>
-              </div>
-            `;
-          }).join('');
-        } else {
-          eventsList.innerHTML = '<div class="no-events">No events scheduled for this month</div>';
-        }
-      }
-
       function calendarEventForDate(dateStr, index) {
         return (events[dateStr] || [])[index] || {};
       }
 
-      // Navigation buttons
+      function getNextEvent() {
+        const allEvents = [];
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        for (const dateStr in events) {
+          const [yearStr, monthStr, dayStr] = dateStr.split('-');
+          const dateObj = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
+          events[dateStr].forEach(event => {
+            allEvents.push({
+              date: dateStr,
+              dateObj,
+              displayDate: dateObj.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+              ...event
+            });
+          });
+        }
+        allEvents.sort((a, b) => a.dateObj - b.dateObj);
+        return allEvents.find(ev => {
+          const d = new Date(ev.dateObj);
+          d.setHours(0, 0, 0, 0);
+          return d >= today;
+        });
+      }
+
+      function displayNextEvent() {
+        const nextEvent = getNextEvent();
+        const nextEventContent = document.getElementById('nextEventContent');
+
+        if (nextEvent) {
+          nextEventContent.innerHTML = `
+            <div class="next-event-card event-item-clickable" data-event-key="next">
+              <div class="next-event-date">${nextEvent.displayDate}</div>
+              <h4>${nextEvent.title}</h4>
+              <p><span class="event-type">${nextEvent.category || nextEvent.type || 'Event'}</span></p>
+              <p><strong>Time:</strong> ${nextEvent.time}${nextEvent.end_time ? ` – ${nextEvent.end_time}` : ''}</p>
+              <button class="jump-btn" onclick="event.stopPropagation(); jumpToDate('${nextEvent.date}')">View in Calendar</button>
+              <span class="event-item-more" style="display:block; margin-top:8px;">View details →</span>
+            </div>
+          `;
+          document.querySelector('[data-event-key="next"]').addEventListener('click', function(e) {
+            if (e.target.classList.contains('jump-btn')) return;
+            if (nextEvent && nextEvent.id) {
+              window.location.href = `event.html?id=${nextEvent.id}`;
+            }
+          });
+        } else {
+          nextEventContent.innerHTML = '<div class="no-events">No upcoming events scheduled</div>';
+        }
+      }
+
+      function jumpToDate(dateStr) {
+        const [yearStr, monthStr] = dateStr.split('-');
+        currentDate = new Date(parseInt(yearStr), parseInt(monthStr) - 1, 1);
+        switchView('calendar');
+        renderCalendar();
+        showEvents(dateStr);
+      }
+
+      // ── Data Loading ───────────────────────────────────
+      async function loadEvents() {
+        try {
+          const response = await fetch(`${API_URL}/events`);
+          const apiEvents = await response.json();
+
+          events = {};
+          apiEvents
+            .filter(event => (event.kind || 'event') === 'event' && event.date)
+            .forEach(event => {
+              const date = event.date.split('T')[0];
+              const eventTime = new Date(event.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+              if (!events[date]) events[date] = [];
+              const eventCategory = getEventCategory(event);
+              events[date].push({
+                id: event.id,
+                title: event.title,
+                type: eventCategory || 'Event',
+                time: eventTime,
+                end_time: event.end_time ? event.end_time.slice(0, 5) : null,
+                description: event.description,
+                location: event.location,
+                image_url: event.image_url || null,
+                category: eventCategory
+              });
+            });
+
+          renderCalendar();
+          document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
+          displayNextEvent();
+
+          // If list view is active, re-render it
+          if (currentView === 'list') renderListView();
+        } catch (error) {
+          console.error('Error loading events:', error);
+          document.getElementById('eventsSection').innerHTML = '<h3>Error loading events</h3>';
+        }
+      }
+
+      async function loadVideos() {
+        try {
+          const res = await fetch(`${API_URL}/videos`);
+          if (res.ok) allVideosData = await res.json();
+        } catch (_) {}
+      }
+
+      async function loadPhotos() {
+        try {
+          const res = await fetch(`${API_URL}/photos`);
+          if (res.ok) allPhotosData = await res.json();
+        } catch (_) {}
+      }
+
+      // ── Modal (legacy fallback) ────────────────────────
+      function openEventModal(eventObj) {
+        const modal = document.getElementById('eventDetailModal');
+        document.getElementById('eventModalTitle').textContent = eventObj.title;
+        const tagEl = document.getElementById('eventModalCategory');
+        tagEl.textContent = eventObj.category || eventObj.type || 'Event';
+        const dateEl = document.getElementById('eventModalDate');
+        if (eventObj.displayDate || eventObj.date) {
+          const displayDate = eventObj.displayDate || (() => {
+            const [y,m,d] = eventObj.date.split('-');
+            return new Date(y, m-1, d).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+          })();
+          const timeStr = eventObj.time ? ` · ${eventObj.time}${eventObj.end_time ? ' – ' + eventObj.end_time : ''}` : '';
+          dateEl.innerHTML = `📅 ${displayDate}${timeStr}`;
+          dateEl.style.display = 'block';
+        } else { dateEl.style.display = 'none'; }
+        const locEl = document.getElementById('eventModalLocation');
+        if (eventObj.location) { locEl.innerHTML = `📍 ${eventObj.location}`; locEl.style.display = 'block'; }
+        else { locEl.style.display = 'none'; }
+        const descEl = document.getElementById('eventModalDesc');
+        if (eventObj.description) { descEl.innerHTML = eventObj.description.replace(/\n/g, '<br>'); descEl.style.display = 'block'; }
+        else { descEl.style.display = 'none'; }
+        const posterWrap = document.getElementById('eventModalPosterWrap');
+        const posterImg = document.getElementById('eventModalPoster');
+        if (eventObj.image_url) { posterImg.src = eventObj.image_url; posterWrap.style.display = 'block'; }
+        else { posterWrap.style.display = 'none'; }
+        document.getElementById('eventModalPhotosLink').style.display = 'none';
+        document.getElementById('eventModalVideosLink').style.display = 'none';
+        document.getElementById('eventModalVideos').style.display = 'none';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeEventModal(e) {
+        if (e && e.target !== document.getElementById('eventDetailModal')) return;
+        document.getElementById('eventDetailModal').style.display = 'none';
+        document.body.style.overflow = '';
+      }
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+          document.getElementById('eventDetailModal').style.display = 'none';
+          document.body.style.overflow = '';
+        }
+      });
+
+      // ── Nav buttons ────────────────────────────────────
       document.getElementById('prevBtn').addEventListener('click', function() {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
-        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
+        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
       });
 
       document.getElementById('nextBtn').addEventListener('click', function() {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
-        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
+        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
       });
 
-      // Initial render
+      // ── Init ───────────────────────────────────────────
+      updateNavLoginState();
       renderCalendar();
-      document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a red dot to see events</div>';
-      displayNextEvent();
-      
-      // Load events from API
-      updateAdminLinkState();
+      document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
       loadEvents();
+      loadVideos();
+      loadPhotos();
     </script>
   </body>
 </html>

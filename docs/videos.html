@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Videos - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+
+  <body>
+    <!-- Navigation -->
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="videos.html" class="nav-active">Videos</a>
+      <a href="#contact">Contact</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
+    </nav>
+
+    <!-- Videos Section -->
+    <div class="videos-container">
+      <h1>Videos</h1>
+
+      <!-- Event Filter -->
+      <div class="video-filter-bar" id="videoFilterBar">
+        <button class="filter-btn active" onclick="filterVideosByEvent('all', this)">All Videos</button>
+      </div>
+
+      <!-- Videos Grid -->
+      <div id="videosGrid" class="videos-grid">
+        <div class="videos-loading">Loading videos…</div>
+      </div>
+    </div>
+
+    <footer>
+      Follow Doll Trap on
+      <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <span>·</span>
+      <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">Xiaohongshu</a>
+      <span>·</span>
+      <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
+    </footer>
+
+    <script>
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
+      const authToken = localStorage.getItem('authToken');
+      let allVideos = [];
+      let currentEventFilter = 'all';
+
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        } else {
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
+
+      // Extract YouTube video ID from various URL formats
+      function getYouTubeId(url) {
+        const patterns = [
+          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/,
+        ];
+        for (const p of patterns) {
+          const m = url.match(p);
+          if (m) return m[1];
+        }
+        return null;
+      }
+
+      // Get thumbnail URL for a video
+      function getVideoThumbnail(video) {
+        if (video.thumbnail_url) return video.thumbnail_url;
+        const ytId = getYouTubeId(video.url);
+        if (ytId) return `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+        return null;
+      }
+
+      function renderVideos(videos) {
+        const grid = document.getElementById('videosGrid');
+        if (videos.length === 0) {
+          grid.innerHTML = '<div class="videos-empty">No videos yet. Check back soon! 🎬</div>';
+          return;
+        }
+        grid.innerHTML = videos.map(v => {
+          const thumb = getVideoThumbnail(v);
+          const thumbHtml = thumb
+            ? `<img src="${thumb}" alt="${v.title}" class="video-thumb-img" loading="lazy">`
+            : `<div class="video-thumb-placeholder">🎬</div>`;
+          const eventBadge = v.event_title
+            ? `<span class="video-event-badge">📅 ${v.event_title}</span>`
+            : '';
+          const descHtml = v.description
+            ? `<p class="video-desc">${v.description}</p>`
+            : '';
+          return `
+            <a class="video-card" href="${v.url}" target="_blank" rel="noopener noreferrer" title="${v.title}">
+              <div class="video-thumb">
+                ${thumbHtml}
+                <div class="video-play-overlay">▶</div>
+              </div>
+              <div class="video-info">
+                ${eventBadge}
+                <h3 class="video-title">${v.title}</h3>
+                ${descHtml}
+              </div>
+            </a>
+          `;
+        }).join('');
+      }
+
+      function filterVideosByEvent(eventId, btn) {
+        currentEventFilter = eventId;
+        document.querySelectorAll('.video-filter-bar .filter-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+        const filtered = eventId === 'all'
+          ? allVideos
+          : allVideos.filter(v => String(v.event_id) === String(eventId));
+        renderVideos(filtered);
+      }
+
+      function buildFilterBar(videos) {
+        const bar = document.getElementById('videoFilterBar');
+        // Collect unique events
+        const seen = new Set();
+        const eventList = [];
+        videos.forEach(v => {
+          if (v.event_id && !seen.has(v.event_id)) {
+            seen.add(v.event_id);
+            eventList.push({ id: v.event_id, title: v.event_title });
+          }
+        });
+        // Only show filter bar if there are multiple events
+        if (eventList.length < 2) {
+          bar.style.display = 'none';
+          return;
+        }
+        bar.style.display = 'flex';
+        bar.innerHTML = `<button class="filter-btn active" onclick="filterVideosByEvent('all', this)">All Videos</button>`;
+        eventList.forEach(ev => {
+          bar.innerHTML += `<button class="filter-btn" onclick="filterVideosByEvent('${ev.id}', this)">📅 ${ev.title}</button>`;
+        });
+      }
+
+      async function loadVideos() {
+        try {
+          const res = await fetch(`${API_URL}/videos`);
+          if (!res.ok) throw new Error('Failed to load videos');
+          allVideos = await res.json();
+          buildFilterBar(allVideos);
+          renderVideos(allVideos);
+        } catch (err) {
+          document.getElementById('videosGrid').innerHTML =
+            `<div class="videos-empty">Couldn't load videos. Please try again later.</div>`;
+        }
+      }
+
+      updateNavLoginState();
+      loadVideos();
+    </script>
+  </body>
+</html>
