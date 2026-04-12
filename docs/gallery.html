@@ -138,6 +138,13 @@
       function resolvePhotoUrl(photo) {
         return photo.photo_url.startsWith('http') ? photo.photo_url : `${API_ORIGIN}${photo.photo_url}`;
       }
+      function thumbUrl(url, width = 600) {
+        if (!url || !url.includes('/storage/v1/object/public/')) return url;
+        return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + `?width=${width}&quality=75`;
+      }
+      function imgWithFallback(thumb, original, alt = '', extra = '') {
+        return `<img src="${thumb}" alt="${alt}" ${extra} onerror="this.onerror=null;this.src='${original}'" loading="lazy">`;
+      }
 
       function getAlbumCover(event, photos) {
         if (photos.length > 0) {
@@ -301,7 +308,7 @@
 
         folderContainer.innerHTML = folders.map(folder => `
           <div class="gallery-item" style="cursor:pointer;" onclick="openAlbum('${folder.key}')">
-            <img src="${folder.cover}" alt="${folder.title}" title="${folder.title}">
+            ${imgWithFallback(thumbUrl(folder.cover, 400), folder.cover, folder.title, `title="${folder.title}"`)}
             <p class="photo-member">${folder.title}</p>
           </div>
         `).join('');
@@ -408,6 +415,18 @@
         }
 
         albumTitle.textContent = title;
+        // Event details link
+        const existingLink = document.getElementById('albumEventLink');
+        if (existingLink) existingLink.remove();
+        if (key.startsWith('event-')) {
+          const eventId = key.replace('event-', '');
+          const link = document.createElement('a');
+          link.id = 'albumEventLink';
+          link.href = `event.html?id=${eventId}`;
+          link.textContent = 'View Event Details →';
+          link.style.cssText = 'display:inline-block;margin-bottom:12px;font-size:13px;color:#d946a6;font-weight:600;text-decoration:none;';
+          albumTitle.insertAdjacentElement('afterend', link);
+        }
         albumMeta.textContent = meta;
         currentModalPhotos = photos.map(photo => resolvePhotoUrl(photo));
         currentModalIndex = 0;
@@ -418,7 +437,7 @@
           const isSaved = savedPhotoIds.has(photo.id);
           return `
             <div class="gallery-item">
-              <img src="${url}" alt="${photo.caption || 'Photo'}" title="${photo.caption || ''}" onclick="openImageModal(${index})">
+              ${imgWithFallback(thumbUrl(url), url, photo.caption || 'Photo', `title="${photo.caption || ''}" onclick="openImageModal(${index})"`)}
               <p class="photo-member">${memberTag}</p>
               <button class="photo-heart-btn${isSaved ? ' saved' : ''}" data-photo-id="${photo.id}" onclick="toggleSavePhoto(${photo.id}, event)">${isSaved ? '\u2665' : '\u2661'}</button>
             </div>

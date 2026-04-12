@@ -25,6 +25,8 @@ const EVENT_CATEGORY_OPTIONS = [
 if (authToken) {
   showDashboard();
   verifyToken();
+} else {
+  location.href = 'portal.html';
 }
 
 // ── Auth ─────────────────────────────────────────────────────
@@ -37,10 +39,7 @@ async function verifyToken() {
     if (response.status === 401) {
       localStorage.removeItem('authToken');
       authToken = null;
-      dashboardShown = false;
-      document.getElementById('dashboard').classList.add('hidden');
-      document.getElementById('loginForm').classList.remove('hidden');
-      document.getElementById('logoutBtn').classList.add('hidden');
+      location.href = 'portal.html';
       return;
     }
 
@@ -82,7 +81,7 @@ document.getElementById('sidebarLogoutBtn').addEventListener('click', doLogout);
 function doLogout() {
   localStorage.removeItem('authToken');
   authToken = null;
-  location.reload();
+  location.href = 'portal.html';
 }
 
 // ── Change Password ───────────────────────────────────────────

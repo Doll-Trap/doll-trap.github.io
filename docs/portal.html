@@ -769,9 +769,14 @@
           });
           const data = await res.json();
           if (!res.ok) throw new Error(data.error);
-          document.getElementById('profileName').textContent = data.display_name;
-          document.getElementById('profileAvatar').textContent = data.display_name[0].toUpperCase();
+          const member = data.member;
+          // Store new token so nav + messages use updated name
+          memberToken = data.token;
+          localStorage.setItem('memberToken', data.token);
+          document.getElementById('profileName').textContent = member.display_name;
+          document.getElementById('profileAvatar').textContent = member.display_name[0].toUpperCase();
           toggleEditName(false);
+          updateNavLoginState();
           showMsg('editNameMsg', 'Name updated!', 'success');
         } catch (err) {
           showMsg('editNameMsg', err.message, 'error');

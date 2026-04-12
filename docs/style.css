@@ -2676,6 +2676,15 @@ footer span {
   opacity: 0.9;
 }
 .gallery-thumb:hover img { transform: scale(1.07); opacity: 1; }
+.member-gallery-more {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 13px;
+  color: #d946a6;
+  font-weight: 600;
+  text-decoration: none;
+}
+.member-gallery-more:hover { text-decoration: underline; }
 .gallery-empty {
   color: var(--text-secondary, #64748b);
   font-size: 0.85rem;

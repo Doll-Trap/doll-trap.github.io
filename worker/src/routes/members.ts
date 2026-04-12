@@ -65,7 +65,9 @@ membersRouter.put('/profile', memberAuthMiddleware, async (c) => {
     if (!display_name) return c.json({ error: 'Display name required' }, 400)
     const me = c.get('member') as any
     const row = await dbFirst(c.env.DB, 'UPDATE members SET display_name=? WHERE id=? RETURNING id,display_name,email', display_name, me.id)
-    return c.json(row)
+    await dbRun(c.env.DB, 'UPDATE member_messages SET display_name=? WHERE member_id=?', display_name, me.id)
+    const token = await memberToken(row!, c.env.JWT_SECRET)
+    return c.json({ member: row, token })
   } catch (err: any) { return c.json({ error: err.message }, 500) }
 })
 

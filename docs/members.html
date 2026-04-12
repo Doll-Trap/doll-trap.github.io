@@ -260,6 +260,14 @@
         if (btn) btn.disabled = false;
       }
 
+      function thumbUrl(url, width = 400) {
+        if (!url || !url.includes('/storage/v1/object/public/')) return url;
+        return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + `?width=${width}&quality=75`;
+      }
+      function imgWithFallback(thumb, original, alt = '') {
+        return `<img src="${thumb}" alt="${alt}" onerror="this.onerror=null;this.src='${original}'" loading="lazy">`;
+      }
+
       // ── Member photo gallery ─────────────────────────────────────────
       async function loadMemberGallery(idolName) {
         const el = document.getElementById(`memberGallery-${idolName}`);
@@ -271,10 +279,16 @@
             el.innerHTML = '<span class="gallery-empty">No photos yet 📷</span>';
             return;
           }
-          el.innerHTML = data.slice(0, 12).map(p => `
+          // Shuffle and show up to 6
+          const shuffled = data.slice().sort(() => Math.random() - 0.5).slice(0, 6);
+          el.innerHTML = shuffled.map(p => `
             <a class="gallery-thumb" href="${p.photo_url}" target="_blank" rel="noopener">
-              <img src="${p.photo_url}" alt="${p.caption || idolName}" loading="lazy">
+              ${imgWithFallback(thumbUrl(p.photo_url), p.photo_url, p.caption || idolName)}
             </a>`).join('');
+          if (data.length > 0) {
+            el.insertAdjacentHTML('afterend', `
+              <a class="member-gallery-more" href="gallery.html">View More in Gallery →</a>`);
+          }
         } catch {
           el.innerHTML = '<span class="gallery-empty">Could not load photos.</span>';
         }

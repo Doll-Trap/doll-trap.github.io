@@ -406,6 +406,14 @@
         if (d.getHours() === 0 && d.getMinutes() === 0) return null;
         return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
       }
+      function thumbUrl(url, width = 600) {
+        if (!url || !url.includes('/storage/v1/object/public/')) return url;
+        return url.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/') + `?width=${width}&quality=75`;
+      }
+      function imgWithFallback(thumb, original, alt = '', cls = '', extra = '') {
+        return `<img src="${thumb}" alt="${alt}" ${cls ? `class="${cls}"` : ''} ${extra} onerror="this.onerror=null;this.src='${original}'" loading="lazy">`;
+      }
+
       function getYouTubeId(url) {
         const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([^&?/\s]{11})/);
         return m ? m[1] : null;
@@ -587,7 +595,7 @@
         if (photos.length > 0) {
           document.getElementById('epPhotosGrid').innerHTML = photos.map(p => `
             <div class="ep-photo-item" onclick="openLightbox('${p.photo_url}')">
-              <img src="${p.photo_url}" alt="${p.caption || ''}" loading="lazy">
+              ${imgWithFallback(thumbUrl(p.photo_url), p.photo_url, p.caption || '')}
             </div>`).join('');
           document.getElementById('epPhotosSection').style.display = 'block';
         }
