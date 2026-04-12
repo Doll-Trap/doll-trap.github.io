@@ -215,6 +215,55 @@
       }
       .ep-lightbox-close:hover { opacity: 1; }
 
+      /* ── Prev / Next event nav ── */
+      .ep-evt-nav {
+        display: flex;
+        align-items: stretch;
+        gap: 10px;
+        margin-top: 36px;
+        padding-top: 24px;
+        border-top: 1px solid var(--border-soft);
+      }
+      .ep-evt-nav-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 16px;
+        border-radius: 12px;
+        border: 1.5px solid var(--border-soft);
+        background: var(--surface);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: border-color 0.2s, box-shadow 0.2s;
+        cursor: pointer;
+        min-width: 0;
+      }
+      .ep-evt-nav-btn:hover { border-color: var(--pink); box-shadow: var(--shadow-soft); }
+      .ep-evt-nav-btn.prev { align-items: flex-start; }
+      .ep-evt-nav-btn.next { align-items: flex-end; text-align: right; }
+      .ep-evt-nav-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--pink);
+      }
+      .ep-evt-nav-title {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+        color: var(--text-secondary);
+      }
+      .ep-evt-nav-date {
+        font-size: 11px;
+        color: var(--text-secondary);
+        opacity: 0.7;
+      }
+
       /* ── Loading ── */
       .ep-loading { text-align: center; padding: 80px 20px; color: var(--text-secondary); }
 
@@ -253,7 +302,7 @@
 
       <!-- Right: details -->
       <div class="ep-details">
-        <a href="calendar.html" class="ep-back">← Back to Calendar</a>
+        <a href="calendar.html" class="ep-back" id="epBackBtn">← Back to Calendar</a>
 
         <div id="epCategory" class="ep-category" style="display:none;"></div>
         <h1 id="epTitle" class="ep-title"></h1>
@@ -284,6 +333,9 @@
           <div class="ep-section-title">🎬 Videos</div>
           <div id="epVideosList"></div>
         </div>
+
+        <!-- Prev / Next navigation -->
+        <div id="epEvtNav"></div>
       </div>
     </div>
 
@@ -300,7 +352,19 @@
 
       const memberToken = localStorage.getItem('memberToken');
       const adminToken  = localStorage.getItem('authToken');
+      // ── Back link ──────────────────────────────────────────
+      (function() {
+        const params = new URLSearchParams(location.search);
+        const from = params.get('from');
+        const btn = document.getElementById('epBackBtn');
+        if (btn && from === 'list') {
+          btn.href = 'calendar.html?view=list';
+          btn.textContent = '← Back to List';
+        }
+      })();
+
       let eventId = null;
+      let eventDate = null;
       let memberEventStatus = { saved: false, checkedIn: false };
 
       function parseJwt(t) {
@@ -380,8 +444,13 @@
         if (!s) return;
         s.classList.toggle('active', memberEventStatus.saved);
         s.textContent = memberEventStatus.saved ? '★ Saved' : '⭐ Save Event';
+        const eventIsPast = eventDate && new Date(eventDate) <= new Date();
         c.classList.toggle('active', memberEventStatus.checkedIn);
         c.textContent = memberEventStatus.checkedIn ? '✓ Checked In' : '📍 Check In';
+        c.disabled = !eventIsPast;
+        c.title = eventIsPast ? '' : 'Check-in is only available after the event has taken place';
+        c.style.opacity = eventIsPast ? '' : '0.45';
+        c.style.cursor = eventIsPast ? '' : 'not-allowed';
       }
       async function loadMemberStatus() {
         try {
@@ -408,6 +477,10 @@
       }
       async function toggleCheckin() {
         if (!memberToken) return;
+        if (!eventDate || new Date(eventDate) > new Date()) {
+          alert('Check-in is only available after the event has taken place.');
+          return;
+        }
         const was = memberEventStatus.checkedIn;
         const res = await fetch(`${API_URL}/members/checkins/${eventId}`, {
           method: was ? 'DELETE' : 'POST',
@@ -489,6 +562,7 @@
         }
 
         // Member area
+        eventDate = ev.date || null;
         renderMemberArea();
 
         // Photos
@@ -521,6 +595,64 @@
 
         document.getElementById('epLoading').style.display = 'none';
         document.getElementById('epWrap').style.display = 'grid';
+
+        // Load prev/next after render
+        loadSiblingEvents();
+      }
+
+      // ── Prev / Next ────────────────────────────────────────────
+      async function loadSiblingEvents() {
+        try {
+          const fromParam = new URLSearchParams(location.search).get('from') || '';
+          const suffix = fromParam ? `&from=${fromParam}` : '';
+
+          const res = await fetch(`${API_URL}/events`);
+          if (!res.ok) return;
+          const all = await res.json();
+
+          // Only real events with a date, sorted oldest → newest
+          const sorted = all
+            .filter(e => (e.kind || 'event') === 'event' && e.date)
+            .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+          const idx = sorted.findIndex(e => e.id === eventId);
+          if (idx === -1) return;
+
+          const prev = idx > 0 ? sorted[idx - 1] : null;
+          const next = idx < sorted.length - 1 ? sorted[idx + 1] : null;
+          if (!prev && !next) return;
+
+          const fmtShort = d => new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+          let html = '<div class="ep-evt-nav">';
+          if (prev) {
+            html += `<a class="ep-evt-nav-btn prev" href="event.html?id=${prev.id}${suffix}">
+              <span class="ep-evt-nav-label">← Previous</span>
+              <span class="ep-evt-nav-title">${prev.title}</span>
+              <span class="ep-evt-nav-date">${fmtShort(prev.date)}</span>
+            </a>`;
+          } else {
+            html += '<div style="flex:1"></div>';
+          }
+          if (next) {
+            html += `<a class="ep-evt-nav-btn next" href="event.html?id=${next.id}${suffix}">
+              <span class="ep-evt-nav-label">Next →</span>
+              <span class="ep-evt-nav-title">${next.title}</span>
+              <span class="ep-evt-nav-date">${fmtShort(next.date)}</span>
+            </a>`;
+          } else {
+            html += '<div style="flex:1"></div>';
+          }
+          html += '</div>';
+          document.getElementById('epEvtNav').innerHTML = html;
+
+          // Keyboard arrow navigation
+          document.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft' && prev) location.href = `event.html?id=${prev.id}${suffix}`;
+            if (e.key === 'ArrowRight' && next) location.href = `event.html?id=${next.id}${suffix}`;
+          });
+        } catch {}
       }
 
       updateNavLoginState();

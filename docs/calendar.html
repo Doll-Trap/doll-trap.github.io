@@ -258,7 +258,7 @@
           const id = card.dataset.id;
           if (id) {
             card.addEventListener('click', () => {
-              window.location.href = `event.html?id=${id}`;
+              window.location.href = `event.html?id=${id}&from=list`;
             });
           }
         });
@@ -347,7 +347,7 @@
             el.addEventListener('click', () => {
               const ev = calendarEventForDate(el.dataset.date, parseInt(el.dataset.idx));
               if (ev && ev.id) {
-                window.location.href = `event.html?id=${ev.id}`;
+                window.location.href = `event.html?id=${ev.id}&from=calendar`;
               } else {
                 openEventModal({ ...ev, displayDate: formattedDate });
               }
@@ -405,7 +405,7 @@
           document.querySelector('[data-event-key="next"]').addEventListener('click', function(e) {
             if (e.target.classList.contains('jump-btn')) return;
             if (nextEvent && nextEvent.id) {
-              window.location.href = `event.html?id=${nextEvent.id}`;
+              window.location.href = `event.html?id=${nextEvent.id}&from=${currentView}`;
             }
           });
         } else {
@@ -452,8 +452,13 @@
           document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
           displayNextEvent();
 
-          // If list view is active, re-render it
-          if (currentView === 'list') renderListView();
+          // Restore view from URL param (e.g. coming back from event detail)
+          const urlView = new URLSearchParams(location.search).get('view');
+          if (urlView === 'list') {
+            switchView('list');
+          } else if (currentView === 'list') {
+            renderListView();
+          }
         } catch (error) {
           console.error('Error loading events:', error);
           document.getElementById('eventsSection').innerHTML = '<h3>Error loading events</h3>';

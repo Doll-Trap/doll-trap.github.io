@@ -27,10 +27,6 @@
           <!-- Member cards will be generated here -->
         </div>
         
-        <div class="members-nav">
-          <button class="nav-btn" id="prevPageBtn">← Past</button>
-          <button class="nav-btn" id="nextPageBtn">Next →</button>
-        </div>
       </div>
 
       <div class="member-detail">
@@ -39,6 +35,7 @@
         </div>
       </div>
     </div>
+
 
     <footer>
       Follow Doll Trap on
@@ -50,11 +47,17 @@
     </footer>
 
     <script>
+      const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
+        ? 'http://localhost:5001/api'
+        : 'https://doll-trap-github-io.onrender.com/api';
       const authToken = localStorage.getItem('authToken');
+      const adminToken = authToken; // alias used in message functions
+      const memberToken = localStorage.getItem('memberToken');
 
       function parseJwt(token) {
-        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; } 
       }
+      const me = parseJwt(memberToken);
       function updateNavLoginState() {
         const btn = document.getElementById('loginNavBtn');
         if (!btn) return;
@@ -80,35 +83,50 @@
         {
           id: 1,
           name: 'KOKONA',
-          image: 'https://via.placeholder.com/150/FFB347/FFFFFF?text=KOKONA',
+          image: 'images/kokona-chibi.jpg',
           mbti: 'ENFP',
           birthday: 'July 31st',
+          birthdayMonth: 7, birthdayDay: 31,
           color: 'Blue',
+          colorHex: '#3b82f6',
           level: '01',
           role: 'Dancer / Performer',
-          about: 'The heart of the group with incredible dance skills and stage presence.'
+          about: 'The heart of the group with incredible dance skills and stage presence.',
+          socials: [
+            { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/kokona_oh?igsh=MTgwcTlyM3o2ZGUzaQ%3D%3D&utm_source=qr' },
+          ]
         },
         {
           id: 2,
           name: 'HITOMI',
-          image: 'https://via.placeholder.com/150/FFD700/FFFFFF?text=HITOMI',
+          image: 'images/hitomi-chibi.jpg',
           mbti: 'ENTJ',
           birthday: 'March 11th',
+          birthdayMonth: 3, birthdayDay: 11,
           color: 'Red',
+          colorHex: '#dc2626',
           level: '01',
           role: 'Vocal / Dancer',
-          about: 'Versatile performer with a soothing voice and graceful movements.'
+          about: 'Versatile performer with a soothing voice and graceful movements.',
+          socials: [
+            { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/nangongxiaoling?igsh=c282djk4eWY3dW9u' },
+          ]
         },
         {
           id: 3,
           name: 'BUZZLY',
-          image: 'https://via.placeholder.com/150/E6B3FF/FFFFFF?text=BUZZLY',
+          image: 'images/buzzly-chibi.jpg',
           mbti: 'ENFJ',
           birthday: 'Jan 16th',
+          birthdayMonth: 1, birthdayDay: 16,
           color: 'Pink',
+          colorHex: '#f9a8d4',
           level: '01',
           role: 'Performer / Dancer',
-          about: 'Dynamic performer bringing energy and humor to every stage.'
+          about: 'Dynamic performer bringing energy and humor to every stage.',
+          socials: [
+            { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/buzz_zzly?igsh=YWd2MXU4b3d4amQ=' },
+          ]
         }
       ];
 
@@ -120,61 +138,308 @@
         membersData.forEach(member => {
           const memberCard = document.createElement('div');
           memberCard.className = 'member-card';
+          memberCard.style.borderBottom = `3px solid ${member.colorHex}`;
           memberCard.innerHTML = `
             <div class="member-card-level">Lv ${member.level}</div>
             <img src="${member.image}" alt="${member.name}">
             <h3>${member.name}</h3>
+            <div class="member-card-color" style="background:${member.colorHex}" title="Member color: ${member.color}"></div>
           `;
           memberCard.addEventListener('click', () => showMemberDetail(member));
           memberGrid.appendChild(memberCard);
         });
       }
 
+      function birthdayCountdown(month, day) {
+        const now = new Date();
+        const thisYear = now.getFullYear();
+        let next = new Date(thisYear, month - 1, day);
+        if (next <= now) next = new Date(thisYear + 1, month - 1, day);
+        const diff = Math.ceil((next - now) / (1000 * 60 * 60 * 24));
+        if (diff === 0) return '🎉 TODAY!';
+        if (diff === 1) return '🎁 Tomorrow!';
+        return `${diff} days away`;
+      }
+
       // Show member details
       function showMemberDetail(member) {
         const detailContent = document.getElementById('memberDetailContent');
+        const countdown = birthdayCountdown(member.birthdayMonth, member.birthdayDay);
         detailContent.innerHTML = `
           <button class="back-btn" onclick="backToList()">← Back</button>
           <div class="detail-header">
             <img src="${member.image}" alt="${member.name}" class="detail-image">
             <div class="detail-info">
               <h2>${member.name}</h2>
+              <div class="member-color-swatch">
+                <span class="swatch-dot" style="background:${member.colorHex}"></span>
+                <span class="swatch-label">${member.color}</span>
+              </div>
               <div class="detail-stat">
                 <p><strong>MBTI:</strong> ${member.mbti}</p>
-                <p><strong>Birthday:</strong> ${member.birthday}</p>
-                <p><strong>Member color:</strong> ${member.color}</p>
+                <p><strong>Birthday:</strong> ${member.birthday} <span class="birthday-countdown">🎂 ${countdown}</span></p>
+                <p><strong>Role:</strong> ${member.role}</p>
+              </div>
+              <div class="detail-action-row">
+                <button class="cheer-btn" id="cheerBtn-${member.name}" onclick="toggleCheer('${member.name}')">
+                  ✨ Cheer <span class="cheer-count" id="cheerCount-${member.name}">…</span>
+                </button>
+                ${member.socials?.length ? member.socials.map(s => `<a class="social-link" href="${s.url}" target="_blank" rel="noopener">${s.icon} ${s.label}</a>`).join('') : ''}
               </div>
             </div>
             <div class="detail-level">Lv ${member.level}</div>
           </div>
           <p class="member-about">${member.about}</p>
-          <div class="detail-buttons">
-            <button class="action-btn">Event</button>
-            <button class="action-btn">Live</button>
+          <div class="member-gallery-section">
+            <div class="member-gallery-title">🖼️ Photos</div>
+            <div class="member-gallery" id="memberGallery-${member.name}">
+              <div class="msg-loading">Loading photos…</div>
+            </div>
+          </div>
+
+          <div class="msg-board">
+            <div class="msg-board-title">💬 Fan Messages</div>
+            ${memberToken ? `
+            <form class="msg-form" onsubmit="postMessage(event, '${member.name}')">
+              <textarea id="msgInput" placeholder="Leave a message for ${member.name}..." maxlength="300" required></textarea>
+              <button type="submit" class="msg-submit">Send ❤️</button>
+            </form>` : `<p class="msg-login-hint"><a href="portal.html">🔑 Sign in</a> to leave a message</p>`}
+            <div class="msg-list" id="msgList-${member.name}"><div class="msg-loading">Loading messages...</div></div>
           </div>
         `;
+        loadMessages(member.name);
+        loadMemberGallery(member.name);
+        loadCheerCount(member.name);
       }
 
-      // Back to member list
+      // ── Session ID for cheers (anonymous, per-browser) ─────────────────────
+      function getCheerSession() {
+        let s = localStorage.getItem('cheerSession');
+        if (!s) {
+          s = 'cs-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+          localStorage.setItem('cheerSession', s);
+        }
+        return s;
+      }
+
+      async function loadCheerCount(idolName) {
+        try {
+          const sid = getCheerSession();
+          const res = await fetch(`${API_URL}/members/cheers/${encodeURIComponent(idolName)}?session_id=${sid}`);
+          const data = res.ok ? await res.json() : { count: 0, cheered: false };
+          const btn = document.getElementById(`cheerBtn-${idolName}`);
+          const cnt = document.getElementById(`cheerCount-${idolName}`);
+          if (!btn || !cnt) return;
+          cnt.textContent = data.count;
+          btn.classList.toggle('cheered', data.cheered);
+          btn.title = data.cheered ? 'Un-cheer' : 'Cheer!';
+        } catch { /* silent */ }
+      }
+
+      async function toggleCheer(idolName) {
+        const sid = getCheerSession();
+        const btn = document.getElementById(`cheerBtn-${idolName}`);
+        if (btn) btn.disabled = true;
+        try {
+          const res = await fetch(`${API_URL}/members/cheers/${encodeURIComponent(idolName)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sid })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const cnt = document.getElementById(`cheerCount-${idolName}`);
+            if (cnt) cnt.textContent = data.count;
+            if (btn) {
+              btn.classList.toggle('cheered', data.cheered);
+              btn.title = data.cheered ? 'Un-cheer' : 'Cheer!';
+              btn.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}], {duration:300});
+            }
+          }
+        } catch { /* silent */ }
+        if (btn) btn.disabled = false;
+      }
+
+      // ── Member photo gallery ─────────────────────────────────────────
+      async function loadMemberGallery(idolName) {
+        const el = document.getElementById(`memberGallery-${idolName}`);
+        if (!el) return;
+        try {
+          const res = await fetch(`${API_URL}/photos/member/${encodeURIComponent(idolName)}`);
+          const data = res.ok ? await res.json() : [];
+          if (data.length === 0) {
+            el.innerHTML = '<span class="gallery-empty">No photos yet 📷</span>';
+            return;
+          }
+          el.innerHTML = data.slice(0, 12).map(p => `
+            <a class="gallery-thumb" href="${p.photo_url}" target="_blank" rel="noopener">
+              <img src="${p.photo_url}" alt="${p.caption || idolName}" loading="lazy">
+            </a>`).join('');
+        } catch {
+          el.innerHTML = '<span class="gallery-empty">Could not load photos.</span>';
+        }
+      }
+
+      async function loadMessages(idolName) {
+        const list = document.getElementById(`msgList-${idolName}`);
+        if (!list) return;
+        try {
+          const res = await fetch(`${API_URL}/members/messages/${encodeURIComponent(idolName)}`);
+          const data = res.ok ? await res.json() : [];
+          if (data.length === 0) {
+            list.innerHTML = '<div class="msg-empty">No messages yet. Be the first! 🌸</div>';
+            return;
+          }
+          list.innerHTML = data.map(m => `
+            <div class="msg-item" id="msg-${m.id}">
+              <div class="msg-meta">
+                <span class="msg-author">${m.display_name}</span>
+                <span class="msg-date">${new Date(m.created_at).toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})}</span>
+                ${me && me.id === m.member_id ? `<button class="msg-delete" onclick="deleteMessage(${m.id}, '${idolName}')">×</button>` : ''}
+                ${adminToken && !(me && me.id === m.member_id) ? `<button class="msg-delete" title="Admin: delete" onclick="adminDeleteMessage(${m.id}, '${idolName}')">×</button>` : ''}
+              </div>
+              <div class="msg-content">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            </div>`).join('');
+        } catch {
+          list.innerHTML = '<div class="msg-empty">Could not load messages.</div>';
+        }
+      }
+
+      async function postMessage(e, idolName) {
+        e.preventDefault();
+        if (!memberToken) return;
+        const input = document.getElementById('msgInput');
+        const content = input.value.trim();
+        if (!content) return;
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API_URL}/members/messages/${encodeURIComponent(idolName)}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+            body: JSON.stringify({ content })
+          });
+          if (res.ok) { input.value = ''; loadMessages(idolName); }
+          else { const d = await res.json(); alert(d.error || 'Failed to send'); }
+        } catch { alert('Failed to send'); }
+        btn.disabled = false;
+      }
+
+      async function deleteMessage(id, idolName) {
+        if (!memberToken || !confirm('Delete this message?')) return;
+        const res = await fetch(`${API_URL}/members/messages/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${memberToken}` }
+        }).catch(() => null);
+        if (res?.ok) loadMessages(idolName);
+      }
+
+      async function adminDeleteMessage(id, idolName) {
+        if (!adminToken || !confirm('Delete this message as admin?')) return;
+        const res = await fetch(`${API_URL}/members/messages/admin/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        }).catch(() => null);
+        if (res?.ok) loadMessages(idolName);
+      }
+
+      // Back to member list → restore group board
       function backToList() {
+        showGroupBoard();
+      }
+
+      // ── Group message board (DollTrap) ────────────────────────────────
+      const GROUP_IDOL = 'DollTrap';
+
+      function showGroupBoard() {
         const detailContent = document.getElementById('memberDetailContent');
-        detailContent.innerHTML = '<p style="text-align: center; color: #999; margin-top: 50px;">Click on a member to view details</p>';
+        const formHtml = memberToken
+          ? `<form class="msg-form" onsubmit="postGroupMessage(event)">
+               <textarea id="groupMsgInput" placeholder="Write your message here..." maxlength="300" required></textarea>
+               <button type="submit" class="msg-submit">Send ❤️</button>
+             </form>`
+          : `<p class="msg-login-hint"><a href="portal.html">🔑 Sign in</a> to leave a message</p>`;
+        detailContent.innerHTML = `
+          <div class="group-board-panel">
+            <h3>💌 Message Board</h3>
+            <p class="group-board-sub">Leave a message for Doll Trap!</p>
+            <div class="msg-board" style="border-top:none;margin-top:0;padding-top:0;">
+              <div id="groupMsgForm">${formHtml}</div>
+              <div class="msg-list" id="groupMsgList"><div class="msg-loading">Loading messages...</div></div>
+            </div>
+          </div>`;
+        loadGroupMessages();
+      }
+
+      async function loadGroupMessages() {
+        const list = document.getElementById('groupMsgList');
+        if (!list) return;
+        try {
+          const res = await fetch(`${API_URL}/members/messages/${GROUP_IDOL}`);
+          const data = res.ok ? await res.json() : [];
+          if (data.length === 0) {
+            list.innerHTML = '<div class="msg-empty">No messages yet. Be the first! 🌸</div>';
+            return;
+          }
+          list.innerHTML = data.map(m => `
+            <div class="msg-item" id="gmsg-${m.id}">
+              <div class="msg-meta">
+                <span class="msg-author">${m.display_name}</span>
+                <span class="msg-date">${new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+                ${me && me.id === m.member_id ? `<button class="msg-delete" onclick="deleteGroupMessage(${m.id})">×</button>` : ''}
+                ${adminToken && !(me && me.id === m.member_id) ? `<button class="msg-delete" title="Admin: delete" onclick="adminDeleteGroupMessage(${m.id})">×</button>` : ''}
+              </div>
+              <div class="msg-content">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+            </div>`).join('');
+        } catch {
+          list.innerHTML = '<div class="msg-empty">Could not load messages.</div>';
+        }
+      }
+
+      async function postGroupMessage(e) {
+        e.preventDefault();
+        if (!memberToken) return;
+        const input = document.getElementById('groupMsgInput');
+        const content = input.value.trim();
+        if (!content) return;
+        const btn = e.target.querySelector('button');
+        btn.disabled = true;
+        try {
+          const res = await fetch(`${API_URL}/members/messages/${GROUP_IDOL}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+            body: JSON.stringify({ content })
+          });
+          if (res.ok) { input.value = ''; loadGroupMessages(); }
+          else { const d = await res.json(); alert(d.error || 'Failed to send'); }
+        } catch { alert('Failed to send'); }
+        btn.disabled = false;
+      }
+
+      async function deleteGroupMessage(id) {
+        if (!memberToken || !confirm('Delete this message?')) return;
+        const res = await fetch(`${API_URL}/members/messages/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${memberToken}` }
+        }).catch(() => null);
+        if (res?.ok) loadGroupMessages();
+      }
+
+      async function adminDeleteGroupMessage(id) {
+        if (!adminToken || !confirm('Delete this message as admin?')) return;
+        const res = await fetch(`${API_URL}/members/messages/admin/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        }).catch(() => null);
+        if (res?.ok) loadGroupMessages();
       }
 
       // Initialize
       updateNavLoginState();
       renderMembers();
+      showGroupBoard();
 
-      // Navigation buttons
-      document.getElementById('prevPageBtn').addEventListener('click', () => {
-        // Placeholder for pagination
-        alert('Previous page');
-      });
 
-      document.getElementById('nextPageBtn').addEventListener('click', () => {
-        // Placeholder for pagination
-        alert('Next page');
-      });
     </script>
   </body>
 </html>

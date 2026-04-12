@@ -75,6 +75,29 @@
         outline: none;
         border-color: var(--pink);
       }
+      .pw-wrap {
+        position: relative;
+        display: flex;
+        align-items: center;
+      }
+      .pw-wrap input {
+        flex: 1;
+        padding-right: 40px !important;
+      }
+      .pw-toggle {
+        position: absolute;
+        right: 10px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        color: var(--text-secondary);
+        font-size: 16px;
+        line-height: 1;
+        user-select: none;
+        transition: color 0.2s;
+      }
+      .pw-toggle:hover { color: var(--pink); }
       .portal-form .submit-btn {
         width: 100%;
         padding: 12px;
@@ -292,6 +315,56 @@
       }
       .portal-photo-item:hover .portal-photo-unsave { opacity: 1; }
 
+      /* ── My Messages list ────────────────────────── */
+      .my-messages-list { display: flex; flex-direction: column; gap: 10px; }
+      .my-msg-item {
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        padding: 12px 14px;
+      }
+      .my-msg-meta {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 6px;
+        flex-wrap: wrap;
+      }
+      .my-msg-idol {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        color: var(--pink, #d946a6);
+        background: rgba(217,70,166,0.1);
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .my-msg-date {
+        font-size: 11px;
+        color: var(--text-secondary, #64748b);
+        flex: 1;
+      }
+      .my-msg-actions { display: flex; gap: 6px; }
+      .my-msg-content {
+        font-size: 0.9rem;
+        color: #0f172a;
+        line-height: 1.5;
+      }
+      .my-msg-textarea {
+        width: 100%;
+        padding: 9px 12px;
+        border: 1.5px solid rgba(217,70,166,0.25);
+        border-radius: 8px;
+        font-size: 14px;
+        background: rgba(255,255,255,0.85);
+        color: var(--text-primary, #1e293b);
+        resize: vertical;
+        min-height: 70px;
+        box-sizing: border-box;
+      }
+      .my-msg-textarea:focus { outline: none; border-color: var(--pink); }
+
       /* ── Inline edit form ─────────────────────────── */
       .inline-edit-form {
         display: none;
@@ -372,7 +445,10 @@
             </div>
             <div class="form-group">
               <label>Password</label>
-              <input type="password" id="loginPassword" placeholder="••••••" required>
+              <div class="pw-wrap">
+                <input type="password" id="loginPassword" placeholder="enter your password" required>
+                <button type="button" class="pw-toggle" onclick="togglePw('loginPassword', this)" tabindex="-1">👁️</button>
+              </div>
             </div>
             <button type="submit" class="submit-btn" id="loginSubmitBtn">Log In</button>
           </form>
@@ -396,7 +472,10 @@
             </div>
             <div class="form-group">
               <label>Password</label>
-              <input type="password" id="regPassword" placeholder="At least 6 characters" required minlength="6">
+              <div class="pw-wrap">
+                <input type="password" id="regPassword" placeholder="At least 6 characters" required minlength="6">
+                <button type="button" class="pw-toggle" onclick="togglePw('regPassword', this)" tabindex="-1">👁️</button>
+              </div>
             </div>
             <button type="submit" class="submit-btn" id="registerSubmitBtn">Create Account</button>
           </form>
@@ -430,8 +509,14 @@
 
             <!-- Inline change password form -->
             <div class="inline-edit-form" id="changePassForm">
-              <input type="password" id="cpCurrent" placeholder="Current password">
-              <input type="password" id="cpNew" placeholder="New password (min 6)">
+              <div class="pw-wrap">
+                <input type="password" id="cpCurrent" placeholder="Current password">
+                <button type="button" class="pw-toggle" onclick="togglePw('cpCurrent', this)" tabindex="-1">👁️</button>
+              </div>
+              <div class="pw-wrap">
+                <input type="password" id="cpNew" placeholder="New password (min 6)">
+                <button type="button" class="pw-toggle" onclick="togglePw('cpNew', this)" tabindex="-1">👁️</button>
+              </div>
               <div style="display:flex;gap:8px;">
                 <button class="portal-btn-sm portal-btn-pink" onclick="savePassword()">Save</button>
                 <button class="portal-btn-sm portal-btn-gray" onclick="toggleChangePass(false)">Cancel</button>
@@ -460,6 +545,10 @@
             <div class="portal-stat-num" id="statSavedPhotos">0</div>
             <div class="portal-stat-label">❤️ Saved Photos</div>
           </div>
+          <div class="portal-stat-card">
+            <div class="portal-stat-num" id="statMyMessages">0</div>
+            <div class="portal-stat-label">💬 My Messages</div>
+          </div>
         </div>
 
         <!-- Check-ins (attended events) -->
@@ -486,6 +575,14 @@
           </div>
         </div>
 
+        <!-- My Messages -->
+        <div class="portal-section">
+          <h3>💬 My Messages</h3>
+          <div class="my-messages-list" id="myMessagesList">
+            <div class="portal-empty">Loading…</div>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -495,6 +592,14 @@
         : 'https://doll-trap-github-io.onrender.com/api';
       let memberToken = localStorage.getItem('memberToken');
       let currentMember = null;
+
+      function togglePw(inputId, btn) {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        const show = input.type === 'password';
+        input.type = show ? 'text' : 'password';
+        btn.textContent = show ? '🙈' : '👁️';
+      }
 
       function parseJwt(token) {
         try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
@@ -627,6 +732,7 @@
         loadCheckins();
         loadSavedEvents();
         loadSavedPhotos();
+        loadMyMessages();
       }
 
       function doLogout() {
@@ -812,6 +918,84 @@
           headers: { 'Authorization': `Bearer ${memberToken}` }
         });
         loadSavedPhotos();
+      }
+
+      // ── My Messages ───────────────────────────────
+      async function loadMyMessages() {
+        const list = document.getElementById('myMessagesList');
+        try {
+          const res = await fetch(`${API_URL}/members/messages/mine`, {
+            headers: { 'Authorization': `Bearer ${memberToken}` }
+          });
+          const data = res.ok ? await res.json() : [];
+          document.getElementById('statMyMessages').textContent = data.length;
+          if (data.length === 0) {
+            list.innerHTML = '<div class="portal-empty">No messages yet. Leave one on the Members page! 💬</div>';
+            return;
+          }
+          list.innerHTML = data.map(m => `
+            <div class="my-msg-item" id="mymsg-${m.id}">
+              <div class="my-msg-meta">
+                <span class="my-msg-idol">${m.idol_name}</span>
+                <span class="my-msg-date">${new Date(m.created_at).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</span>
+                <div class="my-msg-actions">
+                  <button class="portal-btn-sm portal-btn-pink" onclick="startEditMsg(${m.id})">Edit</button>
+                  <button class="portal-btn-sm portal-btn-red" onclick="deleteMyMsg(${m.id})">Delete</button>
+                </div>
+              </div>
+              <div class="my-msg-content" id="mymsg-content-${m.id}">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+              <div class="my-msg-edit-form" id="mymsg-edit-${m.id}" style="display:none;">
+                <textarea class="my-msg-textarea" id="mymsg-ta-${m.id}" maxlength="300">${m.content.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+                <div style="display:flex;gap:8px;margin-top:6px;">
+                  <button class="portal-btn-sm portal-btn-pink" onclick="saveEditMsg(${m.id})">Save</button>
+                  <button class="portal-btn-sm portal-btn-gray" onclick="cancelEditMsg(${m.id})">Cancel</button>
+                </div>
+              </div>
+            </div>`).join('');
+        } catch {
+          list.innerHTML = '<div class="portal-empty">Failed to load.</div>';
+        }
+      }
+
+      function startEditMsg(id) {
+        document.getElementById(`mymsg-content-${id}`).style.display = 'none';
+        document.getElementById(`mymsg-edit-${id}`).style.display = 'block';
+        const ta = document.getElementById(`mymsg-ta-${id}`);
+        ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+      }
+      function cancelEditMsg(id) {
+        document.getElementById(`mymsg-content-${id}`).style.display = '';
+        document.getElementById(`mymsg-edit-${id}`).style.display = 'none';
+      }
+      async function saveEditMsg(id) {
+        const ta = document.getElementById(`mymsg-ta-${id}`);
+        const content = ta.value.trim();
+        if (!content) return;
+        const res = await fetch(`${API_URL}/members/messages/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+          body: JSON.stringify({ content })
+        }).catch(() => null);
+        if (res?.ok) {
+          const updated = await res.json();
+          const contentEl = document.getElementById(`mymsg-content-${id}`);
+          contentEl.textContent = updated.content;
+          cancelEditMsg(id);
+        }
+      }
+      async function deleteMyMsg(id) {
+        if (!confirm('Delete this message?')) return;
+        const res = await fetch(`${API_URL}/members/messages/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${memberToken}` }
+        }).catch(() => null);
+        if (res?.ok) {
+          const el = document.getElementById(`mymsg-${id}`);
+          if (el) el.remove();
+          const remaining = document.querySelectorAll('[id^="mymsg-"]').length;
+          document.getElementById('statMyMessages').textContent = remaining;
+          if (remaining === 0) loadMyMessages();
+        }
       }
 
       // ── Boot ───────────────────────────────────────

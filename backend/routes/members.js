@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../config/database');
 const memberAuth = require('../middleware/memberAuth');
+const authMiddleware = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -207,6 +208,19 @@ router.get('/checkins', memberAuth, async (req, res) => {
 
 router.post('/checkins/:event_id', memberAuth, async (req, res) => {
   try {
+    // Verify the event exists and has already started
+    const eventResult = await pool.query(
+      'SELECT date FROM events WHERE id = $1',
+      [req.params.event_id]
+    );
+    if (eventResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const eventDate = eventResult.rows[0].date;
+    if (!eventDate || new Date(eventDate) > new Date()) {
+      return res.status(400).json({ error: 'Check-in is only available after the event has started' });
+    }
+
     await pool.query(
       'INSERT INTO member_checkins (member_id, event_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
       [req.member.id, req.params.event_id]
@@ -243,6 +257,139 @@ router.post('/my-status', memberAuth, async (req, res) => {
       ? (await pool.query('SELECT photo_id FROM member_saved_photos WHERE member_id=$1 AND photo_id=ANY($2)', [req.member.id, photo_ids])).rows.map(r => r.photo_id)
       : [];
     res.json({ savedEvents, checkedEvents, savedPhotos });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Fan Messages ────────────────────────────────────────────
+// GET /messages/mine  — own messages across all idols
+router.get('/messages/mine', memberAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, idol_name, display_name, content, created_at FROM member_messages WHERE member_id = $1 ORDER BY created_at DESC',
+      [req.member.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /messages/:id  — edit own message
+router.put('/messages/:id', memberAuth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+    if (content.length > 300) return res.status(400).json({ error: 'Message too long (max 300 characters)' });
+    const result = await pool.query(
+      'UPDATE member_messages SET content = $1 WHERE id = $2 AND member_id = $3 RETURNING *',
+      [content.trim(), req.params.id, req.member.id]
+    );
+    if (result.rows.length === 0) return res.status(403).json({ error: 'Not found or not yours' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/messages/:idol_name', async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, idol_name, member_id, display_name, content, created_at FROM member_messages WHERE LOWER(idol_name) = LOWER($1) ORDER BY created_at DESC LIMIT 100',
+      [req.params.idol_name]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/messages/:idol_name', memberAuth, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) return res.status(400).json({ error: 'Message cannot be empty' });
+    if (content.length > 300) return res.status(400).json({ error: 'Message too long (max 300 characters)' });
+    const result = await pool.query(
+      'INSERT INTO member_messages (idol_name, member_id, display_name, content) VALUES ($1, $2, $3, $4) RETURNING *',
+      [req.params.idol_name, req.member.id, req.member.display_name, content.trim()]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete('/messages/:id', memberAuth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM member_messages WHERE id = $1 AND member_id = $2 RETURNING id',
+      [req.params.id, req.member.id]
+    );
+    if (result.rows.length === 0) return res.status(403).json({ error: 'Not found or not yours' });
+    res.json({ deleted: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Admin: delete any message
+router.delete('/messages/admin/:id', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'DELETE FROM member_messages WHERE id = $1 RETURNING id',
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Message not found' });
+    res.json({ deleted: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Cheers ───────────────────────────────────────────────────────────
+// GET /cheers/:idol_name?session_id=xxx  →  { count, cheered }
+router.get('/cheers/:idol_name', async (req, res) => {
+  try {
+    const { idol_name } = req.params;
+    const { session_id } = req.query;
+    const countRes = await pool.query(
+      'SELECT COUNT(*) FROM member_cheers WHERE idol_name = $1',
+      [idol_name]
+    );
+    const count = parseInt(countRes.rows[0].count, 10);
+    let cheered = false;
+    if (session_id) {
+      const cheerRes = await pool.query(
+        'SELECT 1 FROM member_cheers WHERE idol_name = $1 AND session_id = $2',
+        [idol_name, session_id]
+      );
+      cheered = cheerRes.rows.length > 0;
+    }
+    res.json({ count, cheered });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /cheers/:idol_name  body: { session_id }  →  toggle cheer
+router.post('/cheers/:idol_name', async (req, res) => {
+  try {
+    const { idol_name } = req.params;
+    const { session_id } = req.body;
+    if (!session_id) return res.status(400).json({ error: 'session_id required' });
+    const existing = await pool.query(
+      'SELECT id FROM member_cheers WHERE idol_name = $1 AND session_id = $2',
+      [idol_name, session_id]
+    );
+    if (existing.rows.length > 0) {
+      // Un-cheer
+      await pool.query('DELETE FROM member_cheers WHERE idol_name = $1 AND session_id = $2', [idol_name, session_id]);
+    } else {
+      await pool.query('INSERT INTO member_cheers (idol_name, session_id) VALUES ($1, $2)', [idol_name, session_id]);
+    }
+    const countRes = await pool.query('SELECT COUNT(*) FROM member_cheers WHERE idol_name = $1', [idol_name]);
+    res.json({ count: parseInt(countRes.rows[0].count, 10), cheered: existing.rows.length === 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

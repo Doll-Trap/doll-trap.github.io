@@ -216,6 +216,28 @@ const initDB = async () => {
       )
     `);
 
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS member_messages (
+        id SERIAL PRIMARY KEY,
+        idol_name VARCHAR(100) NOT NULL,
+        member_id INTEGER REFERENCES members(id) ON DELETE CASCADE,
+        display_name VARCHAR(100) NOT NULL,
+        content TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    // Member cheers table (session-based, one cheer per session per idol)
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS member_cheers (
+        id SERIAL PRIMARY KEY,
+        idol_name VARCHAR(100) NOT NULL,
+        session_id VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (idol_name, session_id)
+      )
+    `);
+
     // Videos table
     await pool.query(`
       CREATE TABLE IF NOT EXISTS videos (

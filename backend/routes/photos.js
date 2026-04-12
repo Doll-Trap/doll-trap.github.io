@@ -93,6 +93,23 @@ router.get('/event/:event_id', async (req, res) => {
   }
 });
 
+// Get photos by member_tag
+router.get('/member/:tag', async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT p.id, p.event_id, p.photo_url, p.caption, p.member_tag, p.created_at
+       FROM photos p
+       WHERE LOWER(p.member_tag) = LOWER($1)
+       ORDER BY p.created_at DESC
+       LIMIT 12`,
+      [req.params.tag]
+    );
+    res.json(decoratePhotoRows(result.rows));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Upload photo (admin only)
 router.post('/', authMiddleware, upload.single('photo'), async (req, res) => {
   try {
