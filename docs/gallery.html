@@ -77,8 +77,8 @@
 
     <script>
       const API_URL = location.hostname === 'localhost' || location.hostname === '127.0.0.1'
-        ? 'http://localhost:5001/api'
-        : 'https://doll-trap-github-io.onrender.com/api';
+        ? 'http://localhost:8787/api'
+        : 'https://api.dolltrap.workers.dev/api';
       const API_ORIGIN = API_URL.replace('/api', '');
       const authToken = localStorage.getItem('authToken');
       let memberToken = localStorage.getItem('memberToken');

@@ -1,0 +1,19 @@
+name = "api"
+main = "src/index.ts"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "dolltrap-db"
+database_id = "63492527-a479-43a1-a18e-0dd48805d1b5"
+
+# Secrets (set via `wrangler secret put <NAME>`):
+#   JWT_SECRET            — same value as current JWT_SECRET
+#   SUPABASE_URL          — same as current SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY — same as current SUPABASE_SERVICE_ROLE_KEY
+#
+# DATABASE_URL is no longer needed (now using D1)
+
+[vars]
+NODE_ENV = "production"

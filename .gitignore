@@ -6,4 +6,7 @@ node_modules/
 .DS_Store
 uploads/
 dist/
-build/
+build/backend/migration-data.sql
+worker/.dev.vars
+worker/.wrangler/
+worker/node_modules/

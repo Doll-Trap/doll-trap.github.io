@@ -1,0 +1,21 @@
+{
+  "name": "dolltrap-worker",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+"@supabase/supabase-js": "^2.49.4",
+    "bcryptjs": "^2.4.3",
+    "hono": "^4.7.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250409.0",
+    "@types/bcryptjs": "^2.4.6",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.10.0"
+  }
+}
