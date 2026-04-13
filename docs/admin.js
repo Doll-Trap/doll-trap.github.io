@@ -159,7 +159,8 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
     const posterFile = document.getElementById('posterFileInput').files[0];
     if (posterFile) {
       const posterFormData = new FormData();
-      posterFormData.append('poster', posterFile);
+      const compressedPoster = posterFile.type === 'image/gif' ? posterFile : await compressImage(posterFile, 1200, 0.88);
+      posterFormData.append('poster', compressedPoster);
       const uploadRes = await fetch(`${API_URL}/events/upload-poster`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${authToken}` },
@@ -260,6 +261,25 @@ function onPosterUrlInput() {
 }
 
 // ── Photos: Upload ────────────────────────────────────────────
+async function compressImage(file, maxPx = 1500, quality = 0.85) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width <= maxPx && height <= maxPx) { resolve(file); return; }
+      if (width > height) { height = Math.round(height * maxPx / width); width = maxPx; }
+      else { width = Math.round(width * maxPx / height); height = maxPx; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(new File([blob], file.name, { type: 'image/jpeg' })), 'image/jpeg', quality);
+    };
+    img.src = url;
+  });
+}
+
 document.getElementById('photoForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const files = document.getElementById('photoInput').files;
@@ -278,7 +298,8 @@ document.getElementById('photoForm').addEventListener('submit', async (e) => {
 
   for (let file of files) {
     const formData = new FormData();
-    formData.append('photo', file);
+    const compressed = file.type === 'image/gif' ? file : await compressImage(file);
+    formData.append('photo', compressed);
     if (eventId) formData.append('event_id', eventId);
 
     const memberTag = document.getElementById('photoMember').value;
