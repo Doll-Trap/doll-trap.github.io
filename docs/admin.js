@@ -665,6 +665,43 @@ function filterPhotosByEvent(folderKey, button) {
   displayPhotos(filtered);
 }
 
+let selectedPhotoIds = new Set();
+
+function updateBulkBar() {
+  const bar = document.getElementById('bulkBar');
+  const count = document.getElementById('bulkCount');
+  bar.style.display = selectedPhotoIds.size > 0 ? 'flex' : 'none';
+  count.textContent = `${selectedPhotoIds.size} selected`;
+}
+
+function togglePhotoSelect(id, el) {
+  if (selectedPhotoIds.has(id)) {
+    selectedPhotoIds.delete(id);
+    el.classList.remove('selected');
+  } else {
+    selectedPhotoIds.add(id);
+    el.classList.add('selected');
+  }
+  updateBulkBar();
+}
+
+function clearSelection() {
+  selectedPhotoIds.clear();
+  document.querySelectorAll('.photo-thumbnail.selected').forEach(el => el.classList.remove('selected'));
+  updateBulkBar();
+}
+
+async function bulkDelete() {
+  if (selectedPhotoIds.size === 0) return;
+  if (!confirm(`Delete ${selectedPhotoIds.size} photo(s)? This cannot be undone.`)) return;
+  const ids = [...selectedPhotoIds];
+  for (const id of ids) {
+    await fetch(`${API_URL}/photos/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` } }).catch(() => null);
+  }
+  selectedPhotoIds.clear();
+  await loadPhotos();
+}
+
 function displayPhotos(photos) {
   const grid = document.getElementById('photosGrid');
 
@@ -680,11 +717,12 @@ function displayPhotos(photos) {
     const photoUrl = photo.photo_url.startsWith('http')
       ? photo.photo_url
       : `${API_ORIGIN}${photo.photo_url}`;
+    const isSelected = selectedPhotoIds.has(photo.id);
     return `
-      <div class="photo-thumbnail">
-        <img src="${photoUrl}" alt="${photo.caption || 'Photo'}" onclick="window.open('${photoUrl}')">
-        <button class="photo-thumbnail-edit" onclick="openEditPhotoModal(${photo.id})">✎</button>
-        <button class="photo-thumbnail-delete" onclick="deletePhoto(${photo.id})">×</button>
+      <div class="photo-thumbnail${isSelected ? ' selected' : ''}" onclick="togglePhotoSelect(${photo.id}, this)">
+        <img src="${photoUrl}" alt="${photo.caption || 'Photo'}">
+        <button class="photo-thumbnail-edit" onclick="event.stopPropagation();openEditPhotoModal(${photo.id})">✎</button>
+        <button class="photo-thumbnail-delete" onclick="event.stopPropagation();deletePhoto(${photo.id})">×</button>
         <div class="photo-thumbnail-info">
           ${photo.event_id
             ? `<div>${getEventKind(eventMap[photo.event_id] || {}) === 'album' ? '📁' : '📅'} ${(eventMap[photo.event_id] && eventMap[photo.event_id].title) || 'Event/Album'}</div>`

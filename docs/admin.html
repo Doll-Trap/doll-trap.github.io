@@ -226,6 +226,11 @@
             <div class="panel">
               <h2>🖼️ Photo Library</h2>
               <div class="photo-tabs" id="photoEventTabs"></div>
+              <div id="bulkBar" style="display:none;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:rgba(217,70,166,0.1);border-radius:10px;border:1px solid rgba(217,70,166,0.3);">
+                <span id="bulkCount" style="font-size:13px;font-weight:600;color:#d946a6;">0 selected</span>
+                <button onclick="bulkDelete()" style="background:#ef4444;border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">🗑 Delete Selected</button>
+                <button onclick="clearSelection()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+              </div>
               <div class="photos-grid" id="photosGrid"></div>
             </div>
           </div>
