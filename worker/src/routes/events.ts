@@ -6,7 +6,7 @@ import type { HonoEnv } from '../types'
 
 export const eventsRouter = new Hono<HonoEnv>()
 
-const SELECT_FIELDS = 'id, title, description, date, end_time, location, image_url, event_category, event_category AS category, kind, created_by, created_at, updated_at'
+const SELECT_FIELDS = 'id, title, description, date, end_time, location, image_url, poster_urls, event_category, event_category AS category, link, kind, created_by, created_at, updated_at'
 
 // Upload event poster (admin only)
 eventsRouter.post('/upload-poster', authMiddleware, async (c) => {
@@ -57,7 +57,7 @@ eventsRouter.get('/:id', async (c) => {
 
 eventsRouter.post('/', authMiddleware, async (c) => {
   try {
-    const { title, description, date, end_time, location, image_url, category, event_category, kind } = await c.req.json<any>()
+    const { title, description, date, end_time, location, image_url, poster_urls, category, event_category, link, kind } = await c.req.json<any>()
     const resolvedKind = kind === 'album' ? 'album' : 'event'
     const resolvedCategory = event_category ?? category ?? (resolvedKind === 'event' ? 'Live' : null)
     if (!title) return c.json({ error: 'Title required' }, 400)
@@ -65,8 +65,8 @@ eventsRouter.post('/', authMiddleware, async (c) => {
 
     const me = c.get('user') as any
     const row = await dbFirst(c.env.DB,
-      'INSERT INTO events (title,description,date,end_time,location,image_url,event_category,kind,created_by) VALUES (?,?,?,?,?,?,?,?,?) RETURNING *',
-      title, description ?? null, date ?? null, end_time ?? null, location ?? null, image_url ?? null, resolvedCategory, resolvedKind, me.id,
+      'INSERT INTO events (title,description,date,end_time,location,image_url,poster_urls,event_category,link,kind,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING *',
+      title, description ?? null, date ?? null, end_time ?? null, location ?? null, image_url ?? null, poster_urls ?? null, resolvedCategory, link ?? null, resolvedKind, me.id,
     )
     return c.json(row, 201)
   } catch (err: any) {
@@ -76,15 +76,15 @@ eventsRouter.post('/', authMiddleware, async (c) => {
 
 eventsRouter.put('/:id', authMiddleware, async (c) => {
   try {
-    const { title, description, date, end_time, location, image_url, category, event_category, kind } = await c.req.json<any>()
+    const { title, description, date, end_time, location, image_url, poster_urls, category, event_category, link, kind } = await c.req.json<any>()
     const resolvedKind = kind === 'album' ? 'album' : 'event'
     const resolvedCategory = event_category ?? category ?? (resolvedKind === 'event' ? 'Live' : null)
     if (!title) return c.json({ error: 'Title required' }, 400)
     if (resolvedKind === 'event' && !date) return c.json({ error: 'Date required for events' }, 400)
 
     const row = await dbFirst(c.env.DB,
-      'UPDATE events SET title=?,description=?,date=?,end_time=?,location=?,image_url=?,event_category=?,kind=?,updated_at=CURRENT_TIMESTAMP WHERE id=? RETURNING *',
-      title, description ?? null, date ?? null, end_time ?? null, location ?? null, image_url ?? null, resolvedCategory, resolvedKind, c.req.param('id'),
+      'UPDATE events SET title=?,description=?,date=?,end_time=?,location=?,image_url=?,poster_urls=?,event_category=?,link=?,kind=?,updated_at=CURRENT_TIMESTAMP WHERE id=? RETURNING *',
+      title, description ?? null, date ?? null, end_time ?? null, location ?? null, image_url ?? null, poster_urls ?? null, resolvedCategory, link ?? null, resolvedKind, c.req.param('id'),
     )
     if (!row) return c.json({ error: 'Event not found' }, 404)
     return c.json(row)

@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Doll Trap - Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
     <link rel="stylesheet" href="admin.css">
   </head>
 
@@ -94,7 +96,7 @@
               <form id="eventForm">
                 <div class="form-group">
                   <label>Type</label>
-                  <select id="eventKind" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                  <select id="eventKind" class="form-select">
                     <option value="event">Event</option>
                     <option value="album">Album</option>
                   </select>
@@ -105,11 +107,11 @@
                 </div>
                 <div class="form-group">
                   <label>Description</label>
-                  <textarea id="eventDescription" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text); resize: vertical;" rows="3"></textarea>
+                  <textarea id="eventDescription" class="form-textarea" rows="3"></textarea>
                 </div>
                 <div class="form-group" id="eventCategoryGroup">
                   <label>Category</label>
-                  <select id="eventCategory" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                  <select id="eventCategory" class="form-select">
                     <option value="Live">Live</option>
                     <option value="Performance">Performance</option>
                     <option value="Community Event">Community Event</option>
@@ -136,43 +138,43 @@
                   <input type="text" id="eventLocation">
                 </div>
                 <div class="form-group">
-                  <label>Event Poster</label>
-                  <div style="display:flex; flex-direction:column; gap:8px;">
-                    <input type="file" id="posterFileInput" accept="image/*" style="display:none;">
-                    <div class="upload-area" id="posterUploadArea" style="padding: 14px; text-align:center; cursor:pointer;" onclick="document.getElementById('posterFileInput').click()">
-                      <p style="margin:0; font-size:13px; color:#94a3b8;">📤 Click to upload poster image</p>
-                    </div>
-                    <div id="posterPreviewWrap" style="display:none; position:relative; cursor:pointer;" onclick="document.getElementById('posterFileInput').click()" title="Click to change poster">
-                      <img id="posterPreview" src="" alt="Poster Preview" style="width:100%; max-height:200px; object-fit:cover; border-radius:8px; display:block;">
-                      <div style="position:absolute; inset:0; background:rgba(0,0,0,0); border-radius:8px; display:flex; align-items:center; justify-content:center; transition:background 0.2s;" class="poster-change-overlay">
-                        <span style="color:white; font-size:13px; background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:20px; opacity:0; transition:opacity 0.2s;" class="poster-change-label">🔄 Click to change</span>
-                      </div>
-                      <button type="button" onclick="event.stopPropagation(); clearPosterUpload()" style="position:absolute; top:6px; right:6px; background:rgba(0,0,0,0.55); color:white; border:none; border-radius:50%; width:28px; height:28px; cursor:pointer; font-size:16px; line-height:1; z-index:2;" title="Remove poster">&times;</button>
-                    </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                      <div style="flex:1; height:1px; background:var(--border);"></div>
-                      <span style="color:#94a3b8; font-size:12px;">or paste URL</span>
-                      <div style="flex:1; height:1px; background:var(--border);"></div>
-                    </div>
-                    <input type="text" id="eventImage" placeholder="https://..." oninput="onPosterUrlInput()">
+                  <label>Link <span style="color:var(--text-3);font-weight:400;text-transform:none;font-size:11px;">optional — e.g. ticket page, livestream</span></label>
+                  <input type="url" id="eventLink" placeholder="https://...">
+                </div>
+                <div class="form-group">
+                  <label>Posters <span style="color:var(--text-3);font-weight:400;text-transform:none;font-size:11px;">optional · first one = cover image</span></label>
+                  <input type="file" id="posterFileInput" accept="image/*" multiple style="display:none;">
+                  <div id="posterPreviews" class="poster-previews" style="display:none;"></div>
+                  <div class="upload-area" id="posterUploadArea" onclick="document.getElementById('posterFileInput').click()">
+                    <p style="margin:0;font-size:13px;">📤 Click to add poster images</p>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+                    <div style="flex:1;height:1px;background:var(--border-2,#ddd);"></div>
+                    <span style="color:var(--text-3);font-size:11px;">or paste URL</span>
+                    <div style="flex:1;height:1px;background:var(--border-2,#ddd);"></div>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:8px;">
+                    <input type="url" id="eventImage" class="form-control" placeholder="https://..." style="flex:1;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="addPosterUrl()" style="white-space:nowrap;">Add URL</button>
                   </div>
                 </div>
                 <button type="submit" id="eventSubmitBtn">Create Event</button>
-                <button type="button" id="eventCancelEditBtn" class="hidden" style="margin-top: 10px; background: #94a3b8;">Cancel Edit</button>
+                <button type="button" id="eventCancelEditBtn" class="btn btn-secondary hidden" style="margin-top:8px;width:100%;">Cancel Edit</button>
               </form>
-              <p id="eventMessage" class="alert success hidden" style="margin-top: 10px;"></p>
+              <p id="eventMessage" class="alert success hidden" style="margin-top:10px;"></p>
               </div><!-- /panel-body -->
             </div>
 
             <!-- All Events Panel -->
             <div class="panel">
               <h2>📋 All Events</h2>
-              <div style="display: flex; gap: 10px; margin-bottom: 20px;">
-                <button id="filterAll" class="filter-btn active" onclick="filterEvents('all')" style="padding: 8px 16px; border: none; background: var(--blue); color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">All</button>
-                <button id="filterUpcoming" class="filter-btn" onclick="filterEvents('upcoming')" style="padding: 8px 16px; border: none; background: #94a3b8; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Upcoming</button>
-                <button id="filterPast" class="filter-btn" onclick="filterEvents('past')" style="padding: 8px 16px; border: none; background: #94a3b8; color: white; border-radius: 5px; cursor: pointer; font-weight: bold;">Past</button>
+              <div class="filter-tabs">
+                <button id="filterAll" class="filter-btn active" onclick="filterEvents('all')">All Events</button>
+                <button id="filterUpcoming" class="filter-btn" onclick="filterEvents('upcoming')">Upcoming</button>
+                <button id="filterPast" class="filter-btn" onclick="filterEvents('past')">Past</button>
+                <button id="filterAlbums" class="filter-btn" onclick="filterEvents('albums')">📁 Albums</button>
               </div>
-              <div id="allEventsList" class="list-items" style="max-height: 600px; overflow-y: auto;"></div>
+              <div id="allEventsList" class="list-items"></div>
             </div>
           </div>
         </div>
@@ -190,17 +192,17 @@
               <form id="photoForm">
                 <div class="form-group">
                   <label>Event / Album</label>
-                  <select id="photoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                  <select id="photoEvent" class="form-select">
                     <option value="">No Event/Album</option>
                   </select>
                   <div style="display: flex; gap: 8px; margin-top: 8px;">
-                    <input type="text" id="newFolderName" placeholder="Create new album (no date needed)" style="flex: 1; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
-                    <button type="button" id="createFolderBtn" style="white-space: nowrap; padding: 10px 14px;">Create Album</button>
+                    <input type="text" id="newFolderName" class="form-control" placeholder="Create new album (no date needed)">
+                    <button type="button" id="createFolderBtn" class="btn btn-secondary" style="white-space:nowrap;">Create Album</button>
                   </div>
                 </div>
                 <div class="form-group">
                   <label>Member Tag</label>
-                  <select id="photoMember" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+                  <select id="photoMember" class="form-select">
                     <option value="">All Members</option>
                     <option value="Buzzly">Buzzly</option>
                     <option value="Kokona">Kokona</option>
@@ -226,10 +228,14 @@
             <div class="panel">
               <h2>🖼️ Photo Library</h2>
               <div class="photo-tabs" id="photoEventTabs"></div>
-              <div id="bulkBar" style="display:none;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;background:rgba(217,70,166,0.1);border-radius:10px;border:1px solid rgba(217,70,166,0.3);">
-                <span id="bulkCount" style="font-size:13px;font-weight:600;color:#d946a6;">0 selected</span>
-                <button onclick="bulkDelete()" style="background:#ef4444;border:none;color:white;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">🗑 Delete Selected</button>
-                <button onclick="clearSelection()" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text);padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">Cancel</button>
+              <div id="bulkBar" class="bulk-bar">
+                <span id="bulkCount" class="bulk-count">0 selected</span>
+                <select id="bulkAlbumSelect" class="form-select" style="width:auto;padding:5px 28px 5px 10px;font-size:12px;">
+                  <option value="">Move to album…</option>
+                </select>
+                <button onclick="bulkAssign()" class="btn btn-blue btn-sm">Move</button>
+                <button onclick="bulkDelete()" class="btn btn-danger btn-sm">🗑 Delete</button>
+                <button onclick="clearSelection()" class="btn btn-secondary btn-sm">Cancel</button>
               </div>
               <div class="photos-grid" id="photosGrid"></div>
             </div>
@@ -257,16 +263,16 @@
                   </div>
                   <div class="form-group">
                     <label>Related Event / Album</label>
-                    <select id="videoEvent" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg-dark);color:var(--text);">
+                    <select id="videoEvent" class="form-select">
                       <option value="">Not linked to an event</option>
                     </select>
                   </div>
                   <div class="form-group">
                     <label>Description <span style="color:#94a3b8;font-size:12px;">(optional)</span></label>
-                    <textarea id="videoDescription" rows="2" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:5px;background:var(--bg-dark);color:var(--text);resize:vertical;" placeholder="Short description…"></textarea>
+                    <textarea id="videoDescription" class="form-textarea" rows="2" placeholder="Short description…"></textarea>
                   </div>
                   <button type="submit" id="videoSubmitBtn">Add Video</button>
-                  <button type="button" id="videoCancelEditBtn" class="hidden" style="margin-top:10px;background:#94a3b8;">Cancel Edit</button>
+                  <button type="button" id="videoCancelEditBtn" class="btn btn-secondary hidden" style="margin-top:8px;width:100%;">Cancel Edit</button>
                 </form>
                 <p id="videoMessage" class="alert success hidden" style="margin-top:10px;"></p>
               </div>
@@ -275,7 +281,7 @@
             <!-- All Videos Panel -->
             <div class="panel">
               <h2>📋 All Videos</h2>
-              <div id="allVideosList" class="list-items" style="max-height:600px;overflow-y:auto;"></div>
+              <div id="allVideosList" class="list-items"></div>
             </div>
           </div>
         </div>
@@ -323,7 +329,7 @@
             </div>
             <div class="form-group">
               <label>Member Tag</label>
-              <select id="editPhotoMember" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+              <select id="editPhotoMember" class="form-select">
                 <option value="Group">Group</option>
                 <option value="Buzzly">Buzzly</option>
                 <option value="Kokona">Kokona</option>
@@ -332,13 +338,13 @@
             </div>
             <div class="form-group">
               <label>Event / Album</label>
-              <select id="editPhotoEvent" style="width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 5px; background: var(--bg-dark); color: var(--text);">
+              <select id="editPhotoEvent" class="form-select">
                 <option value="">No Event/Album</option>
               </select>
             </div>
             <div style="display: flex; gap: 10px;">
               <button type="submit" style="flex: 1;">Save Changes</button>
-              <button type="button" onclick="closeEditPhotoModal()" style="flex: 1; background: #94a3b8;">Cancel</button>
+              <button type="button" onclick="closeEditPhotoModal()" class="btn btn-secondary" style="flex: 1;">Cancel</button>
             </div>
           </form>
         </div>

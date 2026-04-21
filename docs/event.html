@@ -27,6 +27,80 @@
         display: block;
         box-shadow: 0 20px 60px rgba(30, 27, 75, 0.18);
       }
+      .ep-poster-carousel {
+        position: relative;
+        overflow: hidden;
+        border-radius: 16px;
+        touch-action: pan-y;
+        box-shadow: 0 20px 60px rgba(30, 27, 75, 0.18);
+      }
+
+      .ep-poster-track {
+        display: flex;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        will-change: transform;
+      }
+
+      .ep-poster-track img {
+        width: 100%;
+        flex-shrink: 0;
+        display: block;
+        object-fit: cover;
+        border-radius: 0;
+        box-shadow: none;
+      }
+
+      .ep-poster-dots {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        margin-top: 10px;
+      }
+
+      .ep-poster-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--border-soft, #ccc);
+        transition: background 0.2s, transform 0.2s;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+      }
+
+      .ep-poster-dot.active {
+        background: var(--pink, #d946a6);
+        transform: scale(1.4);
+      }
+
+      .ep-poster-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: rgba(255,255,255,0.85);
+        color: #18181f;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.2s, background 0.15s;
+        z-index: 2;
+        backdrop-filter: blur(4px);
+        line-height: 1;
+        padding: 0;
+      }
+      .ep-poster-arrow.prev { left: 10px; }
+      .ep-poster-arrow.next { right: 10px; }
+      .ep-poster-arrow:hover { background: white; }
+      .ep-poster-carousel:hover .ep-poster-arrow { opacity: 1; }
+      .ep-poster-arrow:disabled { opacity: 0 !important; cursor: default; }
+
       .ep-poster-placeholder {
         width: 100%;
         aspect-ratio: 3/4;
@@ -80,8 +154,26 @@
         display: flex;
         flex-direction: column;
         gap: 10px;
-        margin-bottom: 28px;
+        margin-bottom: 20px;
       }
+
+      .ep-event-link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 24px;
+        padding: 9px 20px;
+        border-radius: 999px;
+        background: linear-gradient(135deg, var(--pink, #d946a6), #ec4899);
+        color: white;
+        font-size: 14px;
+        font-weight: 700;
+        text-decoration: none;
+        letter-spacing: 0.02em;
+        transition: opacity 0.15s, transform 0.1s;
+        box-shadow: 0 4px 16px rgba(217,70,166,0.3);
+      }
+      .ep-event-link-btn:hover { opacity: 0.88; transform: translateY(-1px); }
       .ep-meta-item {
         display: flex;
         align-items: flex-start;
@@ -545,13 +637,93 @@
       function render(ev, photos, videos) {
         document.title = `${ev.title} – Doll Trap`;
 
-        // Poster
-        if (ev.image_url) {
+        // Poster(s)
+        const posterUrls = (() => {
+          try { if (ev.poster_urls) { const a = JSON.parse(ev.poster_urls); if (Array.isArray(a) && a.length) return a; } } catch {}
+          return ev.image_url ? [ev.image_url] : [];
+        })();
+
+        if (posterUrls.length > 0) {
+          const col = document.getElementById('epPosterCol');
           document.getElementById('epPosterPlaceholder').style.display = 'none';
-          const img = document.getElementById('epPosterImg');
-          img.src = ev.image_url;
-          img.alt = ev.title;
-          img.style.display = 'block';
+
+          if (posterUrls.length === 1) {
+            const img = document.getElementById('epPosterImg');
+            img.src = posterUrls[0];
+            img.alt = ev.title;
+            img.style.display = 'block';
+          } else {
+            // Multi-poster swipe carousel
+            document.getElementById('epPosterImg').remove();
+
+            const carousel = document.createElement('div');
+            carousel.className = 'ep-poster-carousel';
+
+            const track = document.createElement('div');
+            track.className = 'ep-poster-track';
+            posterUrls.forEach(url => {
+              const img = document.createElement('img');
+              img.src = url;
+              img.alt = ev.title;
+              track.appendChild(img);
+            });
+            carousel.appendChild(track);
+
+            const btnPrev = document.createElement('button');
+            btnPrev.className = 'ep-poster-arrow prev';
+            btnPrev.innerHTML = '&#8249;';
+            btnPrev.setAttribute('aria-label', 'Previous poster');
+            carousel.appendChild(btnPrev);
+
+            const btnNext = document.createElement('button');
+            btnNext.className = 'ep-poster-arrow next';
+            btnNext.innerHTML = '&#8250;';
+            btnNext.setAttribute('aria-label', 'Next poster');
+            carousel.appendChild(btnNext);
+
+            col.appendChild(carousel);
+
+            // Dot indicators
+            const dots = document.createElement('div');
+            dots.className = 'ep-poster-dots';
+            posterUrls.forEach((_, i) => {
+              const dot = document.createElement('button');
+              dot.className = 'ep-poster-dot' + (i === 0 ? ' active' : '');
+              dot.onclick = () => goTo(i);
+              dots.appendChild(dot);
+            });
+            col.appendChild(dots);
+
+            let current = 0;
+            function goTo(idx) {
+              current = idx;
+              track.style.transform = `translateX(-${idx * 100}%)`;
+              dots.querySelectorAll('.ep-poster-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
+              btnPrev.disabled = idx === 0;
+              btnNext.disabled = idx === posterUrls.length - 1;
+            }
+            btnPrev.onclick = () => goTo(Math.max(0, current - 1));
+            btnNext.onclick = () => goTo(Math.min(posterUrls.length - 1, current + 1));
+            goTo(0);
+
+            // Touch swipe
+            let startX = 0;
+            carousel.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, { passive: true });
+            carousel.addEventListener('touchend', e => {
+              const dx = e.changedTouches[0].clientX - startX;
+              if (Math.abs(dx) > 40) goTo(Math.max(0, Math.min(posterUrls.length - 1, current + (dx < 0 ? 1 : -1))));
+            }, { passive: true });
+
+            // Mouse drag
+            let dragStartX = 0, dragging = false;
+            carousel.addEventListener('mousedown', e => { dragStartX = e.clientX; dragging = true; });
+            carousel.addEventListener('mouseup', e => {
+              if (!dragging) return; dragging = false;
+              const dx = e.clientX - dragStartX;
+              if (Math.abs(dx) > 40) goTo(Math.max(0, Math.min(posterUrls.length - 1, current + (dx < 0 ? 1 : -1))));
+            });
+            carousel.addEventListener('mouseleave', () => { dragging = false; });
+          }
         }
 
         // Category
@@ -580,6 +752,17 @@
             <span class="ep-meta-icon">${icon}</span>
             <span>${text}</span>
           </div>`).join('');
+
+        // Link
+        if (ev.link) {
+          const linkEl = document.createElement('a');
+          linkEl.href = ev.link;
+          linkEl.target = '_blank';
+          linkEl.rel = 'noopener noreferrer';
+          linkEl.className = 'ep-event-link-btn';
+          linkEl.textContent = '🔗 Event Link →';
+          document.getElementById('epMetaList').after(linkEl);
+        }
 
         // Description
         if (ev.description) {

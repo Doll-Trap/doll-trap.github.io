@@ -19,11 +19,16 @@ CREATE TABLE IF NOT EXISTS events (
   location TEXT,
   image_url TEXT,
   event_category TEXT,
+  link TEXT,
+  poster_urls TEXT,
   kind TEXT NOT NULL DEFAULT 'event',
   created_by INTEGER REFERENCES users(id),
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+-- Migrations (run once on existing DB):
+-- ALTER TABLE events ADD COLUMN link TEXT;
+-- ALTER TABLE events ADD COLUMN poster_urls TEXT;
 
 CREATE TABLE IF NOT EXISTS photos (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

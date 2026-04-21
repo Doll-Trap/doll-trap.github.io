@@ -420,12 +420,15 @@
         if (existingLink) existingLink.remove();
         if (key.startsWith('event-')) {
           const eventId = key.replace('event-', '');
-          const link = document.createElement('a');
-          link.id = 'albumEventLink';
-          link.href = `event.html?id=${eventId}`;
-          link.textContent = 'View Event Details →';
-          link.style.cssText = 'display:inline-block;margin-bottom:12px;font-size:13px;color:#d946a6;font-weight:600;text-decoration:none;';
-          albumTitle.insertAdjacentElement('afterend', link);
+          const eventObj = allEvents.find(e => String(e.id) === eventId);
+          if (eventObj && (eventObj.kind || 'event') === 'event') {
+            const link = document.createElement('a');
+            link.id = 'albumEventLink';
+            link.href = `event.html?id=${eventId}`;
+            link.textContent = 'View Event Details →';
+            link.style.cssText = 'display:inline-block;margin-bottom:12px;font-size:13px;color:#d946a6;font-weight:600;text-decoration:none;';
+            albumTitle.insertAdjacentElement('afterend', link);
+          }
         }
         albumMeta.textContent = meta;
         currentModalPhotos = photos.map(photo => resolvePhotoUrl(photo));

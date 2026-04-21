@@ -1,8 +1,12 @@
-# Doll Trap - Seattle Underground Idol Group
+# Doll Trap — Seattle Underground Idol Group
 
-A cosplay idol performance group website with admin panel for event and photo management.
+Fan club website with admin panel for event and photo management.
 
-Events and albums share the same `events` table, distinguished by `kind = 'event' | 'album'`. The calendar and home page only show `kind = 'event'` records; the gallery and admin can also manage albums.
+**Stack:** GitHub Pages (frontend) · Cloudflare Workers + D1 (backend + database) · Supabase Storage (images)
+
+Events and albums share the same `events` table, distinguished by `kind = 'event' | 'album'`. The calendar and home page only show `kind = 'event'`; the gallery and admin can also manage albums.
+
+---
 
 ## Project Structure
 
@@ -14,119 +18,128 @@ dolltrap.github.io/
 │   ├── calendar.html         # Event calendar
 │   ├── gallery.html          # Photo gallery / albums
 │   ├── videos.html           # Videos page
+│   ├── event.html            # Event detail page
 │   ├── portal.html           # Member portal (login, saved events/photos)
 │   ├── admin.html            # Admin panel
 │   ├── style.css             # Global styles
 │   ├── admin.css             # Admin panel styles
 │   └── admin.js              # Admin panel logic
 │
-├── backend/                  # Node.js Express API
-│   ├── server.js             # Entry point
-│   ├── package.json
-│   ├── Dockerfile
-│   ├── config/
-│   │   └── database.js       # PostgreSQL connection & auto-migration
-│   ├── routes/
-│   │   ├── auth.js           # Admin authentication
-│   │   ├── events.js         # Events + albums CRUD + poster upload
-│   │   ├── photos.js         # Photo upload / update / delete
-│   │   ├── videos.js         # Video CRUD
-│   │   └── members.js        # Member registration, login, saves, check-ins
-│   ├── middleware/
-│   │   ├── auth.js           # Admin JWT middleware
-│   │   └── memberAuth.js     # Member JWT middleware
-│   └── uploads/              # Legacy local upload path (unused, kept for reference)
-│
-├── docker-compose.yml        # Docker config (API only — DB is on Neon)
-└── README.md
+└── worker/                   # Cloudflare Worker (API)
+    ├── src/
+    │   ├── index.ts          # App entry point + CORS
+    │   ├── db.ts             # D1 helpers (dbFirst, dbAll, dbRun)
+    │   ├── types.ts          # HonoEnv, Bindings, Variables
+    │   ├── routes/
+    │   │   ├── auth.ts       # Admin authentication
+    │   │   ├── events.ts     # Events + albums CRUD + poster upload
+    │   │   ├── photos.ts     # Photo upload / update / delete
+    │   │   ├── videos.ts     # Video CRUD
+    │   │   └── members.ts    # Member accounts, saves, check-ins, messages
+    │   └── middleware/
+    │       ├── auth.ts       # Admin JWT middleware
+    │       └── memberAuth.ts # Member JWT middleware
+    ├── schema.sql            # D1 SQLite schema
+    ├── wrangler.toml         # Cloudflare Worker config
+    └── .dev.vars             # Local secrets (never committed)
 ```
+
+---
 
 ## Local Development
 
 ### Prerequisites
-- Node.js v18+
-- A `.env` file in `backend/` (copy from `.env.example`)
 
-### Start the backend
+- Node.js v18+
+- Wrangler CLI: `npm install -g wrangler` (or use `npx wrangler`)
+- A Cloudflare account with the Worker already deployed
+
+### 1. Set up local secrets
+
+Copy `.dev.vars.example` to `worker/.dev.vars` and fill in:
 
 ```bash
-cd backend
-npm install
-npm run dev
+JWT_SECRET=any-local-secret
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-The server starts on **http://localhost:5001** (port 5001 — macOS reserves 5000 for AirPlay).
+`DATABASE_URL` is no longer needed — the API uses Cloudflare D1.
 
-> If you changed `PORT` in `.env`, use that port instead.
-
-### Test it's running
+### 2. Start the Worker locally (with remote D1)
 
 ```bash
-curl http://localhost:5001/api/health
+cd worker && npx wrangler dev --remote
+```
+
+The `--remote` flag connects to the real D1 database on Cloudflare so you see live data. Without it, a local empty D1 is used.
+
+Worker runs on **http://localhost:8787**.
+
+### 3. Serve the frontend
+
+In a second terminal:
+
+```bash
+cd docs && python3 -m http.server 3000
+```
+
+Open **http://localhost:3000/admin.html**. The frontend auto-detects `localhost` and points to `localhost:8787`.
+
+### 4. Test it's running
+
+```bash
+curl http://localhost:8787/api/health
 # → {"status":"Backend is running"}
 ```
 
-### Admin panel (local)
+---
 
-Open `docs/admin.html` in a browser. The admin panel auto-detects whether to use `localhost:5001` or the production Render URL based on the current hostname.
+## Cloudflare Secrets (production)
 
-Login with any of the three admin accounts (password: `Admin123!`):
-- `admin`
-- `buzzly`
-- `hitomi`
-
-## Environment Variables
-
-Copy `backend/.env.example` to `backend/.env` and fill in:
+Set once via Wrangler — these are never stored in files:
 
 ```bash
-# Neon PostgreSQL (free tier, no auto-pause)
-DB_HOST=<your-neon-host>
-DB_PORT=5432
-DB_NAME=neondb
-DB_USER=neondb_owner
-DB_PASSWORD=<your-neon-password>
-
-# JWT
-JWT_SECRET=<strong-random-string>
-
-# Server
-PORT=5001
-NODE_ENV=development
-
-# Supabase Storage (for image uploads — separate from the DB)
-SUPABASE_URL=https://<your-project>.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+cd worker
+npx wrangler secret put JWT_SECRET
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_SERVICE_ROLE_KEY
 ```
+
+---
 
 ## Database
 
-**PostgreSQL on [Neon](https://neon.tech)** (free tier, never auto-pauses).
-**Images** are stored in **Supabase Storage** (unaffected by Neon migration).
+**Cloudflare D1** (SQLite) — bound as `DB` in the Worker.
 
-Tables are created automatically on first startup via `initDB()` in `database.js`. No manual migrations needed.
+- Database name: `dolltrap-db`
+- Apply schema: `npx wrangler d1 execute dolltrap-db --file=schema.sql --remote`
 
 ### Schema summary
 
 | Table | Purpose |
 |-------|---------|
 | `users` | Admin accounts |
-| `events` | Events (`kind='event'`) and albums (`kind='album'`) |
+| `events` | Events (`kind='event'`) and photo albums (`kind='album'`) |
 | `photos` | Photos linked to events/albums, stored in Supabase Storage |
 | `videos` | YouTube/video links |
 | `members` | Public member accounts (separate from admins) |
 | `member_saved_events` | Events saved by members |
 | `member_saved_photos` | Photos saved by members |
-| `member_checkins` | Event check-ins by members |
-| `game_users` / `inventory` | Pre-built tables for future game features |
+| `member_checkins` | Event check-ins |
+| `member_messages` | Fan messages per idol |
+| `member_cheers` | Anonymous cheer counts per idol |
+
+---
 
 ## API Endpoints
+
+Base URL: `https://api.dolltrap.workers.dev/api`
 
 ### Admin auth — `/api/auth`
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | POST | `/login` | — | Admin login → JWT |
-| POST | `/register` | — | Create admin account |
 | GET | `/verify` | Admin | Verify token |
 | POST | `/change-password` | Admin | Change password |
 
@@ -137,17 +150,18 @@ Tables are created automatically on first startup via `initDB()` in `database.js
 | GET | `/:id` | — | Single event/album |
 | POST | `/` | Admin | Create event or album |
 | PUT | `/:id` | Admin | Update event or album |
-| DELETE | `/:id` | Admin | Delete event or album (cascades to photos) |
-| POST | `/upload-poster` | Admin | Upload poster image to Supabase Storage |
+| DELETE | `/:id` | Admin | Delete event or album |
+| POST | `/upload-poster` | Admin | Upload poster to Supabase Storage |
 
 ### Photos — `/api/photos`
 | Method | Path | Auth | Description |
 |--------|------|------|-------------|
 | GET | `/` | — | All photos |
 | GET | `/event/:event_id` | — | Photos for a specific event |
-| POST | `/` | Admin | Upload photo (multipart, max 50MB) |
+| GET | `/member/:tag` | — | Photos tagged to a member |
+| POST | `/` | Admin | Upload photo (auto-compressed to 1500px before upload) |
 | PUT | `/:id` | Admin | Update caption / member tag / event link |
-| DELETE | `/:id` | Admin | Delete photo (also removes file from Supabase Storage) |
+| DELETE | `/:id` | Admin | Delete photo + remove from Supabase Storage |
 
 ### Videos — `/api/videos`
 | Method | Path | Auth | Description |
@@ -163,70 +177,55 @@ Tables are created automatically on first startup via `initDB()` in `database.js
 |--------|------|------|-------------|
 | POST | `/register` | — | Member sign-up |
 | POST | `/login` | — | Member login → JWT |
-| GET | `/verify` | Member | Verify member token |
-| PUT | `/profile` | Member | Update display name |
+| GET | `/verify` | Member | Verify token + get profile |
+| PUT | `/profile` | Member | Update display name (also updates all messages, returns new token) |
 | POST | `/change-password` | Member | Change password |
-| GET | `/saves/events` | Member | Get saved events |
-| POST | `/saves/events/:id` | Member | Save an event |
-| DELETE | `/saves/events/:id` | Member | Unsave an event |
-| GET | `/saves/photos` | Member | Get saved photos |
-| POST | `/saves/photos/:id` | Member | Save a photo |
-| DELETE | `/saves/photos/:id` | Member | Unsave a photo |
-| GET | `/checkins` | Member | Get check-ins |
-| POST | `/checkins/:event_id` | Member | Check in to event |
-| DELETE | `/checkins/:event_id` | Member | Remove check-in |
-| POST | `/my-status` | Member | Batch fetch save/check-in state |
+| GET/POST/DELETE | `/saves/events/:id` | Member | Save / unsave events |
+| GET/POST/DELETE | `/saves/photos/:id` | Member | Save / unsave photos |
+| GET/POST/DELETE | `/checkins/:event_id` | Member | Check in / remove check-in |
+| POST | `/my-status` | Member | Batch fetch save/check-in/saved-photo state |
+| GET/POST | `/messages/:idol_name` | —/Member | Read / post fan messages |
+| PUT/DELETE | `/messages/:id` | Member | Edit / delete own message |
+| DELETE | `/messages/admin/:id` | Admin | Admin delete any message |
+| GET/POST | `/cheers/:idol_name` | — | Get cheer count / toggle cheer |
 
-## Docker (optional)
-
-The `docker-compose.yml` runs only the API container. The DB is external (Neon).
-
-```bash
-# Start
-docker-compose up -d
-
-# Logs
-docker-compose logs -f api
-
-# Stop
-docker-compose down
-
-# Rebuild after code changes
-docker-compose up -d --build
-```
-
-The container maps port `8000` → internal `5000`. Set `PORT=5000` in `.env` when running via Docker.
+---
 
 ## Deployment
 
-**Frontend:** Push to GitHub — GitHub Pages serves `docs/` automatically.
+**Frontend:** Push to `main` — GitHub Pages serves `docs/` automatically.
 
-**Backend:** Deployed on [Render](https://render.com) as a Docker web service. Set all env vars from the table above in the Render dashboard.
+**Backend:** Deploy the Cloudflare Worker:
+
+```bash
+cd worker && npx wrangler deploy
+```
+
+---
 
 ## Production Checklist
 
 - [x] CORS restricted to `dolltrap.github.io` and `localhost`
-- [x] Images stored in Supabase Storage (survive deploys)
-- [x] Database on Neon (no auto-pause on free tier)
+- [x] Images stored in Supabase Storage (persistent)
+- [x] Database on Cloudflare D1 (no cold start)
+- [x] Photo/poster uploads auto-compressed to 1500px before storage
 - [x] Photo delete cleans up Supabase Storage file
-- [x] Password validation on admin register (min 8 chars)
-- [ ] Change default admin passwords from `Admin123!`
+- [x] Member display name change updates JWT + all past messages
+- [ ] Change default admin passwords
 - [ ] Strong `JWT_SECRET` in production
 - [ ] Add rate limiting to auth endpoints
-- [ ] Set up monitoring / logging
+
+---
 
 ## Troubleshooting
 
-**Port 5000 in use (macOS AirPlay):** Use `PORT=5001` in `.env`.
+**Photos show as broken locally:** Supabase image transform API requires Pro plan. The site falls back to original URLs automatically via `onerror`.
 
-**`ENOTFOUND` on startup:** Neon or Supabase host unreachable — check your `DB_HOST` in `.env`.
+**Upload fails locally (internal error):** Check `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in `worker/.dev.vars`, then restart `wrangler dev --remote`.
 
-**Photo uploads failing:**
-- Check `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are set
-- Verify the `doll-trap` bucket exists in Supabase Storage
-- Max file size is 50MB; allowed types: JPEG, PNG, GIF, WebP
+**Calendar/list empty:** Make sure dates are stored correctly. SQLite uses `YYYY-MM-DD HH:MM:SS` format; the frontend uses `substring(0, 10)` to extract the date key.
 
-**CORS errors in browser:** Make sure you're accessing the admin panel from `localhost` or `dolltrap.github.io`.
+**CORS errors in browser:** Access the site from `localhost` or `dolltrap.github.io`, not `file://`.
 
 ---
 

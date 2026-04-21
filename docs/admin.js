@@ -16,6 +16,7 @@ let currentPhotoEventFilter = 'all';
 let editingPhotoId = null;
 let editingEventId = null;
 let editingEventKind = 'event';
+let posterItems = []; // { type:'file'|'url', file?, url, previewSrc }
 const EVENT_CATEGORY_OPTIONS = [
   'Live', 'Performance', 'Community Event',
   'Convention', 'Workshop', 'Collaboration', 'Other'
@@ -154,25 +155,27 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
   submitBtn.textContent = 'Saving...';
 
   try {
-    // Upload poster if a file was selected
-    let imageUrl = document.getElementById('eventImage').value || null;
-    const posterFile = document.getElementById('posterFileInput').files[0];
-    if (posterFile) {
-      const posterFormData = new FormData();
-      const compressedPoster = posterFile.type === 'image/gif' ? posterFile : await compressImage(posterFile, 1200, 0.88);
-      posterFormData.append('poster', compressedPoster);
-      const uploadRes = await fetch(`${API_URL}/events/upload-poster`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${authToken}` },
-        body: posterFormData
-      });
-      if (!uploadRes.ok) {
-        const err = await parseApiError(uploadRes, 'Poster upload failed');
-        throw new Error(err);
+    // Upload any pending poster files, collect all URLs
+    const posterUrls = [];
+    for (const item of posterItems) {
+      if (item.type === 'file') {
+        const posterFormData = new FormData();
+        const compressed = item.file.type === 'image/gif' ? item.file : await compressImage(item.file, 1200, 0.88);
+        posterFormData.append('poster', compressed);
+        const uploadRes = await fetch(`${API_URL}/events/upload-poster`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` },
+          body: posterFormData
+        });
+        if (!uploadRes.ok) throw new Error(await parseApiError(uploadRes, 'Poster upload failed'));
+        const uploadData = await uploadRes.json();
+        posterUrls.push(uploadData.url);
+      } else {
+        posterUrls.push(item.url);
       }
-      const uploadData = await uploadRes.json();
-      imageUrl = uploadData.url;
     }
+    const imageUrl = posterUrls[0] || null;
+    const poster_urls = posterUrls.length > 0 ? JSON.stringify(posterUrls) : null;
 
     const event = {
       title: document.getElementById('eventTitle').value,
@@ -180,7 +183,9 @@ document.getElementById('eventForm').addEventListener('submit', async (e) => {
       date: dateString ? new Date(dateString).toISOString() : null,
       end_time: endTimeValue || null,
       location: document.getElementById('eventLocation').value,
+      link: document.getElementById('eventLink').value || null,
       image_url: imageUrl,
+      poster_urls,
       event_category: eventKind === 'event' ? document.getElementById('eventCategory').value : null,
       kind: eventKind
     };
@@ -227,37 +232,52 @@ document.getElementById('eventCancelEditBtn').addEventListener('click', () => {
 
 // ── Poster upload helpers ─────────────────────────────────────
 document.getElementById('posterFileInput').addEventListener('change', function () {
-  const file = this.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = e => {
-    document.getElementById('posterPreview').src = e.target.result;
-    document.getElementById('posterPreviewWrap').style.display = 'block';
-    document.getElementById('posterUploadArea').style.display = 'none';
-    document.getElementById('eventImage').value = '';
-  };
-  reader.readAsDataURL(file);
+  Array.from(this.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      posterItems.push({ type: 'file', file, previewSrc: e.target.result });
+      renderPosterPreviews();
+    };
+    reader.readAsDataURL(file);
+  });
+  this.value = ''; // allow re-selecting same files
 });
 
-function clearPosterUpload() {
-  document.getElementById('posterFileInput').value = '';
-  document.getElementById('posterPreviewWrap').style.display = 'none';
-  document.getElementById('posterUploadArea').style.display = 'block';
-  document.getElementById('eventImage').value = '';
+function renderPosterPreviews() {
+  const container = document.getElementById('posterPreviews');
+  if (posterItems.length === 0) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+    return;
+  }
+  container.style.display = 'flex';
+  container.innerHTML = posterItems.map((item, i) => `
+    <div class="poster-preview-item">
+      <img src="${item.previewSrc}" alt="Poster ${i + 1}">
+      ${i === 0 ? '<div class="poster-primary-badge">Cover</div>' : ''}
+      <button type="button" class="poster-remove-btn" onclick="removePosterItem(${i})">×</button>
+    </div>
+  `).join('');
 }
 
-function onPosterUrlInput() {
+function removePosterItem(i) {
+  posterItems.splice(i, 1);
+  renderPosterPreviews();
+}
+
+function addPosterUrl() {
   const url = document.getElementById('eventImage').value.trim();
-  if (url) {
-    // URL typed — clear any selected file and hide file preview
-    // (but don't clear the URL field itself — that's what the user is typing)
-    document.getElementById('posterFileInput').value = '';
-    document.getElementById('posterPreviewWrap').style.display = 'none';
-    document.getElementById('posterUploadArea').style.display = 'none';
-  } else {
-    // URL cleared — show upload area again
-    document.getElementById('posterUploadArea').style.display = 'block';
-  }
+  if (!url) return;
+  posterItems.push({ type: 'url', url, previewSrc: url });
+  document.getElementById('eventImage').value = '';
+  renderPosterPreviews();
+}
+
+function clearPosterUpload() {
+  posterItems = [];
+  document.getElementById('posterFileInput').value = '';
+  document.getElementById('eventImage').value = '';
+  renderPosterPreviews();
 }
 
 // ── Photos: Upload ────────────────────────────────────────────
@@ -554,6 +574,7 @@ async function loadEvents() {
     });
     videoEventSelect.value = currentVideoEventValue;
 
+    updateBulkAlbumSelect();
     filterEvents('all');
     await loadPhotos();
   } catch (error) {
@@ -566,9 +587,11 @@ function filterEvents(type) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  let filteredEvents = allEventsData;
+  let filteredEvents;
 
-  if (type === 'upcoming') {
+  if (type === 'albums') {
+    filteredEvents = allEventsData.filter(event => getEventKind(event) === 'album');
+  } else if (type === 'upcoming') {
     filteredEvents = allEventsData.filter(event => {
       if (getEventKind(event) !== 'event' || !event.date) return false;
       const d = new Date(event.date);
@@ -582,15 +605,19 @@ function filterEvents(type) {
       d.setHours(0, 0, 0, 0);
       return d < now;
     });
+  } else {
+    // 'all' — events only, no albums
+    filteredEvents = allEventsData.filter(event => getEventKind(event) === 'event');
   }
 
-  document.getElementById('filterAll').style.background      = type === 'all'      ? 'var(--blue)' : '#94a3b8';
-  document.getElementById('filterUpcoming').style.background = type === 'upcoming' ? 'var(--blue)' : '#94a3b8';
-  document.getElementById('filterPast').style.background     = type === 'past'     ? 'var(--blue)' : '#94a3b8';
+  ['all', 'upcoming', 'past', 'albums'].forEach(t => {
+    const id = t === 'all' ? 'filterAll' : t === 'upcoming' ? 'filterUpcoming' : t === 'past' ? 'filterPast' : 'filterAlbums';
+    document.getElementById(id).classList.toggle('active', t === type);
+  });
 
   const allList = document.getElementById('allEventsList');
   if (filteredEvents.length === 0) {
-    allList.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">No events</p>';
+    allList.innerHTML = '<p style="text-align:center;color:var(--text-3,#666);padding:24px;">No events</p>';
   } else {
     allList.innerHTML = filteredEvents.map(event => {
       const eventDate = event.date ? new Date(event.date) : null;
@@ -600,16 +627,15 @@ function filterEvents(type) {
       return `
         <div class="list-item">
           <div class="list-item-info">
-            <h4>${event.title} <span style="font-size:11px;color:#94a3b8;font-weight:normal;">· ${eventType}</span></h4>
-            <p style="margin:5px 0;">${event.date ? new Date(event.date).toLocaleString() : '<strong>TBD</strong>'}</p>
-            ${getStoredEventCategory(event) ? `<p style="margin:5px 0;font-size:11px;color:#94a3b8;">🏷️ ${getStoredEventCategory(event)}</p>` : ''}
-            ${event.location ? `<p style="margin:5px 0;font-size:11px;color:#94a3b8;">📍 ${event.location}</p>` : ''}
-            <p style="font-size:11px;color:#64748b;margin-top:8px;">${event.description || 'No description'}</p>
-            ${isPast ? '<p style="font-size:10px;color:#ef4444;margin-top:5px;"><strong>PAST EVENT</strong></p>' : ''}
+            <h4>${event.title} <span style="font-size:11px;font-weight:400;opacity:0.5;">· ${eventType}</span></h4>
+            <p>${event.date ? new Date(event.date).toLocaleString() : '<strong>TBD</strong>'}</p>
+            ${getStoredEventCategory(event) ? `<p class="item-meta">🏷️ ${getStoredEventCategory(event)}</p>` : ''}
+            ${event.location ? `<p class="item-meta">📍 ${event.location}</p>` : ''}
+            ${isPast ? '<p class="item-past">PAST EVENT</p>' : ''}
           </div>
-          <div style="display:flex;gap:5px;flex-direction:column;">
-            <button onclick="editEvent(${event.id})" style="background:var(--blue);border:none;color:white;padding:8px 12px;border-radius:5px;cursor:pointer;white-space:nowrap;">Edit</button>
-            <button onclick="deleteEvent(${event.id})" style="background:#ef4444;border:none;color:white;padding:8px 12px;border-radius:5px;cursor:pointer;white-space:nowrap;">Delete</button>
+          <div class="list-item-actions">
+            <button onclick="editEvent(${event.id})" class="btn btn-blue btn-sm">Edit</button>
+            <button onclick="deleteEvent(${event.id})" class="btn btn-danger btn-sm">Delete</button>
           </div>
         </div>
       `;
@@ -670,7 +696,7 @@ let selectedPhotoIds = new Set();
 function updateBulkBar() {
   const bar = document.getElementById('bulkBar');
   const count = document.getElementById('bulkCount');
-  bar.style.display = selectedPhotoIds.size > 0 ? 'flex' : 'none';
+  bar.classList.toggle('visible', selectedPhotoIds.size > 0);
   count.textContent = `${selectedPhotoIds.size} selected`;
 }
 
@@ -702,11 +728,38 @@ async function bulkDelete() {
   await loadPhotos();
 }
 
+async function bulkAssign() {
+  const albumId = document.getElementById('bulkAlbumSelect').value;
+  if (!albumId) { alert('Please select an album first.'); return; }
+  if (selectedPhotoIds.size === 0) return;
+  const ids = [...selectedPhotoIds];
+  for (const id of ids) {
+    await fetch(`${API_URL}/photos/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+      body: JSON.stringify({ event_id: albumId })
+    }).catch(() => null);
+  }
+  selectedPhotoIds.clear();
+  document.getElementById('bulkAlbumSelect').value = '';
+  await loadPhotos();
+}
+
+function updateBulkAlbumSelect() {
+  const select = document.getElementById('bulkAlbumSelect');
+  const current = select.value;
+  select.innerHTML = '<option value="">Move to album…</option>';
+  allEventsData.filter(e => getEventKind(e) === 'album').forEach(album => {
+    select.innerHTML += `<option value="${album.id}">📁 ${album.title}</option>`;
+  });
+  select.value = current;
+}
+
 function displayPhotos(photos) {
   const grid = document.getElementById('photosGrid');
 
   if (photos.length === 0) {
-    grid.innerHTML = '<p style="text-align:center;color:#999;grid-column:1/-1;padding:20px;">No photos</p>';
+    grid.innerHTML = '<p style="text-align:center;color:var(--text-3,#666);grid-column:1/-1;padding:24px;">No photos</p>';
     return;
   }
 
@@ -827,15 +880,17 @@ function editEvent(id) {
 
       document.getElementById('eventEndTime').value = event.end_time ? event.end_time.slice(0, 5) : '';
       document.getElementById('eventLocation').value = event.location || '';
-      document.getElementById('eventImage').value = event.image_url || '';
+      document.getElementById('eventLink').value = event.link || '';
+      document.getElementById('eventImage').value = '';
 
-      if (event.image_url) {
-        document.getElementById('posterPreview').src = event.image_url;
-        document.getElementById('posterPreviewWrap').style.display = 'block';
-        document.getElementById('posterUploadArea').style.display = 'none';
-      } else {
-        clearPosterUpload();
-      }
+      // Load existing posters into posterItems
+      let existingUrls = [];
+      try {
+        if (event.poster_urls) existingUrls = JSON.parse(event.poster_urls);
+      } catch {}
+      if (!existingUrls.length && event.image_url) existingUrls = [event.image_url];
+      posterItems = existingUrls.map(url => ({ type: 'url', url, previewSrc: url }));
+      renderPosterPreviews();
 
       document.getElementById('eventCancelEditBtn').classList.remove('hidden');
 
@@ -918,29 +973,29 @@ async function loadVideos() {
 function displayVideos(videos) {
   const list = document.getElementById('allVideosList');
   if (!videos || videos.length === 0) {
-    list.innerHTML = '<p style="text-align:center;color:#999;padding:20px;">No videos yet</p>';
+    list.innerHTML = '<p style="text-align:center;color:var(--text-3,#666);padding:24px;">No videos yet</p>';
     return;
   }
   list.innerHTML = videos.map(v => {
     const thumb = getVideoThumbnail(v);
     const thumbHtml = thumb
-      ? `<img src="${thumb}" alt="${v.title}" style="width:100px;height:60px;object-fit:cover;border-radius:6px;flex-shrink:0;">`
-      : `<div style="width:100px;height:60px;background:#1e293b;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎬</div>`;
-    const eventLabel = v.event_title ? `<span style="font-size:11px;color:#94a3b8;">📅 ${v.event_title}</span>` : '';
+      ? `<img src="${thumb}" alt="${v.title}" style="width:96px;height:58px;object-fit:cover;border-radius:6px;flex-shrink:0;">`
+      : `<div style="width:96px;height:58px;background:var(--bg-hover,#1e293b);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🎬</div>`;
+    const eventLabel = v.event_title ? `<p class="item-meta">📅 ${v.event_title}</p>` : '';
     return `
-      <div style="display:flex;gap:12px;align-items:flex-start;padding:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--bg-dark);">
+      <div class="list-item" style="align-items:flex-start;">
         <a href="${v.url}" target="_blank" rel="noopener noreferrer" style="flex-shrink:0;position:relative;display:block;">
           ${thumbHtml}
           <span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;text-shadow:0 1px 4px #000;">▶</span>
         </a>
-        <div style="flex:1;min-width:0;">
-          <div style="font-weight:600;font-size:14px;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${v.title}</div>
+        <div class="list-item-info">
+          <h4>${v.title}</h4>
           ${eventLabel}
-          ${v.description ? `<p style="font-size:12px;color:#94a3b8;margin:4px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${v.description}</p>` : ''}
+          ${v.description ? `<p class="item-meta" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${v.description}</p>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
-          <button onclick="editVideo(${v.id})" style="padding:5px 10px;font-size:12px;">Edit</button>
-          <button onclick="deleteVideo(${v.id})" style="padding:5px 10px;font-size:12px;background:#ef4444;">Delete</button>
+        <div class="list-item-actions">
+          <button onclick="editVideo(${v.id})" class="btn btn-blue btn-sm">Edit</button>
+          <button onclick="deleteVideo(${v.id})" class="btn btn-danger btn-sm">Delete</button>
         </div>
       </div>
     `;
