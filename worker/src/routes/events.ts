@@ -95,7 +95,13 @@ eventsRouter.put('/:id', authMiddleware, async (c) => {
 
 eventsRouter.delete('/:id', authMiddleware, async (c) => {
   try {
-    const row = await dbFirst(c.env.DB, 'DELETE FROM events WHERE id=? RETURNING *', c.req.param('id'))
+    const id = c.req.param('id')
+    // Clean up related records before deleting to avoid FK constraint errors
+    await dbRun(c.env.DB, 'UPDATE photos SET event_id=NULL WHERE event_id=?', id)
+    await dbRun(c.env.DB, 'UPDATE videos SET event_id=NULL WHERE event_id=?', id)
+    await dbRun(c.env.DB, 'DELETE FROM member_saved_events WHERE event_id=?', id)
+    await dbRun(c.env.DB, 'DELETE FROM member_checkins WHERE event_id=?', id)
+    const row = await dbFirst(c.env.DB, 'DELETE FROM events WHERE id=? RETURNING *', id)
     if (!row) return c.json({ error: 'Event not found' }, 404)
     return c.json({ message: 'Event deleted', event: row })
   } catch (err: any) {

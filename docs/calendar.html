@@ -31,29 +31,11 @@
 
       <!-- ── Calendar View ── -->
       <div id="calendarViewContainer">
-        <div class="legend">
-          <div class="legend-item">
-            <div class="legend-box upcoming"></div>
-            <span>Upcoming Event</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-box past"></div>
-            <span>Past Event</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-box today"></div>
-            <span>Today</span>
-          </div>
-        </div>
-
-        <div class="calendar-content-wrapper">
-          <div class="calendar-main">
-            <div class="calendar-controls">
-              <button id="prevBtn">← Previous</button>
-              <div class="calendar-month" id="monthYear"></div>
-              <button id="nextBtn">Next →</button>
+        <div class="cal-layout">
+          <div class="cal-main">
+            <div class="cal-logo">
+              <img src="images/logo.jpg" alt="Doll Trap" id="calLogoImg">
             </div>
-
             <table class="calendar-table" id="calendarTable">
               <thead>
                 <tr>
@@ -66,15 +48,17 @@
                   <th>Sat</th>
                 </tr>
               </thead>
-              <tbody id="calendarBody">
-              </tbody>
+              <tbody id="calendarBody"></tbody>
             </table>
+            <div class="calendar-controls">
+              <button id="prevBtn">←</button>
+              <div class="calendar-month" id="monthYear"></div>
+              <button id="nextBtn">→</button>
+            </div>
           </div>
 
-          <div class="calendar-sidebar">
-            <div class="events-section" id="eventsSection">
-            </div>
-
+          <div class="cal-sidebar">
+            <div class="events-section" id="eventsSection" style="display:none;"></div>
             <div class="next-event-section" id="nextEventSection">
               <h3>Next Upcoming Event</h3>
               <div id="nextEventContent"></div>
@@ -298,21 +282,22 @@
               nextMonthDate++;
             } else {
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
-              cell.innerHTML = `<span class="day-number">${date}</span>`;
 
-              if (events[dateStr]) {
+              const hasEvent = !!events[dateStr];
+              if (hasEvent) {
                 const eventDate = new Date(year, month, date);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 eventDate.setHours(0, 0, 0, 0);
                 cell.classList.add(eventDate < today ? 'past-event' : 'has-event');
-                cell.innerHTML += '<span class="event-dot"></span>';
               }
 
               const today = new Date();
               if (date === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
                 cell.classList.add('today');
               }
+
+              cell.innerHTML = `<div class="day-bubble">${date}${hasEvent ? '<span class="event-dot"></span>' : ''}</div>`;
 
               cell.dataset.date = dateStr;
               cell.addEventListener('click', function() { showEvents(dateStr); });
@@ -333,6 +318,7 @@
         const eventsList = document.getElementById('eventsSection');
         const dayEvents = events[dateStr];
 
+        eventsList.style.display = 'block';
         if (dayEvents && dayEvents.length > 0) {
           eventsList.innerHTML = `<h3>Events on ${formattedDate}</h3>` + dayEvents.map((event, i) => `
             <div class="event-item event-item-clickable" data-date="${dateStr}" data-idx="${i}">
@@ -449,7 +435,6 @@
             });
 
           renderCalendar();
-          document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
           displayNextEvent();
 
           // Restore view from URL param (e.g. coming back from event detail)
@@ -529,20 +514,22 @@
       document.getElementById('prevBtn').addEventListener('click', function() {
         currentDate.setMonth(currentDate.getMonth() - 1);
         renderCalendar();
-        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
+        document.getElementById('eventsSection').style.display = 'none';
       });
 
       document.getElementById('nextBtn').addEventListener('click', function() {
         currentDate.setMonth(currentDate.getMonth() + 1);
         renderCalendar();
-        document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
+        document.getElementById('eventsSection').style.display = 'none';
       });
 
       // ── Init ───────────────────────────────────────────
       updateNavLoginState();
       renderCalendar();
-      document.getElementById('eventsSection').innerHTML = '<h3>Select a date to view events</h3><div class="no-events">Click on a date with a dot to see events</div>';
       loadEvents();
+      // Hide logo placeholder if image not found
+      const logoImg = document.getElementById('calLogoImg');
+      if (logoImg) logoImg.onerror = () => logoImg.style.display = 'none';
       loadVideos();
       loadPhotos();
     </script>

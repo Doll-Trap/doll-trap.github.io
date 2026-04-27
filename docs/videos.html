@@ -5,6 +5,115 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Videos - Doll Trap</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+      /* ── Retro Video Window ── */
+      #videoPlayerModal {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        background: rgba(30, 20, 50, 0.72);
+        backdrop-filter: blur(6px);
+        align-items: center;
+        justify-content: center;
+      }
+
+      .vw-window {
+        width: min(700px, 95vw);
+        background: #d0c0e8;
+        border: 3px solid #8a7aaa;
+        border-radius: 4px;
+        box-shadow:
+          inset 2px 2px 0 rgba(255,255,255,0.55),
+          inset -2px -2px 0 rgba(0,0,0,0.18),
+          6px 6px 0 #5a4878,
+          10px 10px 0 rgba(90,72,120,0.25);
+        animation: vwPop 0.15s ease;
+      }
+
+      @keyframes vwPop {
+        from { transform: scale(0.92); opacity: 0; }
+        to   { transform: scale(1);    opacity: 1; }
+      }
+
+      .vw-bar {
+        background: linear-gradient(90deg, #6a4e9a, #8a6aba);
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid #4a3878;
+        cursor: default;
+      }
+
+      .vw-title {
+        color: white;
+        font-family: 'Press Start 2P', monospace;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        text-shadow: 1px 1px 0 rgba(0,0,0,0.4);
+      }
+
+      .vw-btns {
+        display: flex;
+        gap: 4px;
+      }
+
+      .vw-btn {
+        width: 26px;
+        height: 22px;
+        background: #c8b0e0;
+        border: 2px solid #7a6aaa;
+        border-top-color: rgba(255,255,255,0.7);
+        border-left-color: rgba(255,255,255,0.7);
+        color: #3a2860;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        line-height: 1;
+        font-family: monospace;
+      }
+
+      .vw-btn:active {
+        border-top-color: rgba(0,0,0,0.3);
+        border-left-color: rgba(0,0,0,0.3);
+        border-bottom-color: rgba(255,255,255,0.5);
+        border-right-color: rgba(255,255,255,0.5);
+      }
+
+      .vw-close { color: #8a1040; }
+
+      .vw-screen {
+        background: #2a1e42;
+        aspect-ratio: 16 / 9;
+        border: 3px solid #4a3878;
+        border-top-color: #1a1030;
+        border-left-color: #1a1030;
+        margin: 8px;
+      }
+
+      .vw-screen iframe {
+        width: 100%;
+        height: 100%;
+        display: block;
+        border: none;
+      }
+
+      .vw-info {
+        padding: 6px 12px 10px;
+      }
+
+      .vw-video-title {
+        font-family: 'Press Start 2P', monospace;
+        font-size: 9px;
+        color: #4a3070;
+        line-height: 1.6;
+      }
+    </style>
   </head>
 
   <body>
@@ -18,6 +127,26 @@
       <a href="#contact">Contact</a>
       <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
     </nav>
+
+    <!-- Retro Video Player Modal -->
+    <div id="videoPlayerModal">
+      <div class="vw-window">
+        <div class="vw-bar">
+          <span class="vw-title">Doll Trap</span>
+          <div class="vw-btns">
+            <button class="vw-btn">□</button>
+            <button class="vw-btn">—</button>
+            <button class="vw-btn vw-close" onclick="closeVideoModal()">✕</button>
+          </div>
+        </div>
+        <div class="vw-screen">
+          <iframe id="videoPlayerFrame" src="" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+        </div>
+        <div class="vw-info">
+          <span id="videoPlayerTitle" class="vw-video-title"></span>
+        </div>
+      </div>
+    </div>
 
     <!-- Videos Section -->
     <div class="videos-container">
@@ -76,16 +205,31 @@
         }
       }
 
-      // Extract YouTube video ID from various URL formats
-      function getYouTubeId(url) {
-        const patterns = [
-          /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/,
-        ];
-        for (const p of patterns) {
-          const m = url.match(p);
-          if (m) return m[1];
-        }
+      // Extract embed URL from various platforms
+      function getEmbedUrl(url) {
+        if (!url) return null;
+
+        // YouTube
+        const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/);
+        if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+
+        // Bilibili
+        const bvMatch = url.match(/bilibili\.com\/video\/(BV[A-Za-z0-9]+)/i);
+        if (bvMatch) return `https://player.bilibili.com/player.html?bvid=${bvMatch[1]}&autoplay=1&high_quality=1`;
+        const avMatch = url.match(/bilibili\.com\/video\/av(\d+)/i);
+        if (avMatch) return `https://player.bilibili.com/player.html?aid=${avMatch[1]}&autoplay=1&high_quality=1`;
+
+        // Vimeo
+        const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+        if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+
         return null;
+      }
+
+      // Keep for thumbnail generation
+      function getYouTubeId(url) {
+        const m = url?.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)([A-Za-z0-9_-]{11})/);
+        return m ? m[1] : null;
       }
 
       // Get thumbnail URL for a video
@@ -113,8 +257,12 @@
           const descHtml = v.description
             ? `<p class="video-desc">${v.description}</p>`
             : '';
+          const embedUrl = getEmbedUrl(v.url);
+          const onclick = embedUrl
+            ? `onclick="openVideoModal('${embedUrl}', this.querySelector('.video-title').textContent)"`
+            : `onclick="window.open('${v.url}','_blank')"`;
           return `
-            <a class="video-card" href="${v.url}" target="_blank" rel="noopener noreferrer" title="${v.title}">
+            <div class="video-card" ${onclick} style="cursor:pointer;">
               <div class="video-thumb">
                 ${thumbHtml}
                 <div class="video-play-overlay">▶</div>
@@ -124,10 +272,33 @@
                 <h3 class="video-title">${v.title}</h3>
                 ${descHtml}
               </div>
-            </a>
+            </div>
           `;
         }).join('');
       }
+
+      function openVideoModal(embedUrl, title) {
+        const modal = document.getElementById('videoPlayerModal');
+        document.getElementById('videoPlayerFrame').src = embedUrl;
+        document.getElementById('videoPlayerTitle').textContent = title || '';
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeVideoModal() {
+        const modal = document.getElementById('videoPlayerModal');
+        modal.style.display = 'none';
+        document.getElementById('videoPlayerFrame').src = '';
+        document.body.style.overflow = '';
+      }
+
+      document.getElementById('videoPlayerModal').addEventListener('click', function(e) {
+        if (e.target === this) closeVideoModal();
+      });
+
+      document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeVideoModal();
+      });
 
       function filterVideosByEvent(eventId, btn) {
         currentEventFilter = eventId;

@@ -924,7 +924,7 @@ async function deleteEvent(id) {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${authToken}` }
     });
-    if (!response.ok) throw new Error('Failed to delete');
+    if (!response.ok) throw new Error(await parseApiError(response, 'Failed to delete'));
     loadEvents();
   } catch (error) {
     alert('Error: ' + error.message);

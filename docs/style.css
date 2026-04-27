@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Press+Start+2P&display=swap');
+
 /* ========================================
    Global Styles
    ======================================== */
@@ -91,8 +93,12 @@ nav a {
   color: var(--text-primary);
   margin: 0;
   text-decoration: none;
-  font-weight: bold;
-  padding: 10px 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  padding: 16px 18px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.5);
   border: 1px solid transparent;
@@ -214,6 +220,73 @@ nav #loginNavBtn:hover {
   color: rgba(255, 255, 255, 0.94);
 }
 
+/* ── About Section ─────────────────────────── */
+.about-wrap {
+  max-width: 860px;
+  margin: 48px auto 32px;
+  padding: 0 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.about-badge {
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #1a1a2e;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  padding: 14px 36px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  margin-bottom: -22px;
+  position: relative;
+  z-index: 2;
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+.about-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 20px;
+  padding: 52px 52px 40px;
+  box-shadow:
+    0 8px 32px rgba(0,0,0,0.08),
+    0 0 40px rgba(217, 70, 166, 0.12),
+    0 0 80px rgba(99, 179, 237, 0.1);
+}
+
+.about-divider {
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  margin: 0 0 20px;
+}
+
+.about-divider:last-child {
+  margin: 20px 0 0;
+}
+
+.about-text {
+  text-align: center;
+  font-size: 15px;
+  line-height: 2;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+@media (max-width: 600px) {
+  .about-card { padding: 44px 24px 28px; }
+  .about-text { font-size: 14px; }
+}
+
 /* ========================================
    Content Sections
    ======================================== */
@@ -262,11 +335,20 @@ nav #loginNavBtn:hover {
 }
 
 .upcoming-event-label {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--pink);
-  letter-spacing: -0.01em;
-  margin-bottom: 32px;
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #1a1a2e;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  padding: 14px 36px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  margin-bottom: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 /* badge */
@@ -284,11 +366,12 @@ nav #loginNavBtn:hover {
 }
 
 .ue-title {
-  font-size: clamp(24px, 4vw, 40px);
-  font-weight: 800;
+  font-size: clamp(13px, 2vw, 20px);
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
   color: var(--text-primary);
   margin: 0 0 16px;
-  line-height: 1.15;
+  line-height: 1.6;
 }
 .ue-title-link { color: inherit; text-decoration: none; }
 .ue-title-link:hover { color: var(--pink); }
@@ -342,19 +425,21 @@ nav #loginNavBtn:hover {
   border: 1px solid rgba(217, 70, 166, 0.1);
 }
 .ue-cd-box span {
-  font-size: 32px;
-  font-weight: 800;
+  font-size: 26px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
   color: var(--text-primary);
   line-height: 1;
   min-width: 2ch;
 }
 .ue-cd-box label {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 8px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 
 /* buttons */
@@ -397,8 +482,30 @@ nav #loginNavBtn:hover {
 }
 
 /* ========================================
-   Members Section
+   Members Section (Homepage)
    ======================================== */
+.members-section {
+  padding: 48px 24px 64px;
+  text-align: center;
+}
+
+.members-badge {
+  display: inline-block;
+  background: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: #1a1a2e;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 22px;
+  font-weight: 400;
+  padding: 14px 36px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+  margin-bottom: 40px;
+  border: 1px solid rgba(255,255,255,0.7);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
 .members {
   display: flex;
   gap: 20px;
@@ -408,67 +515,46 @@ nav #loginNavBtn:hover {
 
 .member {
   background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(252,248,255,0.92));
-  padding: 22px;
+  padding: 22px 16px 18px;
   border-radius: 24px;
   box-shadow: var(--shadow-soft);
   text-align: center;
-  width: 210px;
+  width: 200px;
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.9);
 }
 
-.member:nth-child(1) {
-  border-color: #ffe6f0;
-}
+.member:nth-child(1) { border-color: #ffe6f0; }
+.member:nth-child(2) { border-color: #e0f2fe; }
+.member:nth-child(3) { border-color: #fee2e2; }
 
-.member:nth-child(1):hover {
-  border-color: #d946a6;
-  box-shadow: 0 8px 20px rgba(217, 70, 166, 0.3);
-}
+.member:hover { transform: translateY(-10px); }
 
-.member:nth-child(2) {
-  border-color: #e0f2fe;
-}
-
-.member:nth-child(2):hover {
-  border-color: #3b82f6;
-  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-}
-
-.member:nth-child(3) {
-  border-color: #fee2e2;
-}
-
-.member:nth-child(3):hover {
-  border-color: #ef4444;
-  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
-}
-
-.member:hover {
-  transform: translateY(-10px);
-}
+.member:nth-child(1):hover { border-color: #d946a6; box-shadow: 0 8px 20px rgba(217, 70, 166, 0.3); }
+.member:nth-child(2):hover { border-color: #3b82f6; box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3); }
+.member:nth-child(3):hover { border-color: #ef4444; box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3); }
 
 .member img {
-  width: 160px;
-  height: 160px;
+  width: 100%;
+  height: 260px;
   object-fit: contain;
+  object-position: center bottom;
   border-radius: 0;
   margin-bottom: 14px;
+  display: block;
 }
 
 .member h3 {
-  margin: 10px 0 8px 0;
-  color: var(--pink);
-  font-size: 20px;
+  margin: 10px 0 8px;
+  font-size: 13px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+  letter-spacing: 0.04em;
 }
 
-.member:nth-child(2) h3 {
-  color: #3b82f6;
-}
-
-.member:nth-child(3) h3 {
-  color: #ef4444;
-}
+.member:nth-child(1) h3 { color: var(--pink); }
+.member:nth-child(2) h3 { color: #3b82f6; }
+.member:nth-child(3) h3 { color: #ef4444; }
 
 .member p {
   margin: 0;
@@ -512,34 +598,63 @@ footer span {
    Calendar Styles
    ======================================== */
 .calendar-container {
-  max-width: 1400px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 20px 60px;
 }
 
-.calendar-container h1 {
-  text-align: center;
-  color: #d946a6;
-  font-size: 32px;
-  margin-bottom: 30px;
-  text-shadow: 2px 2px 4px rgba(217, 70, 166, 0.1);
-}
-
-.calendar-content-wrapper {
+.cal-layout {
   display: flex;
-  gap: 30px;
+  gap: 24px;
+  align-items: flex-start;
 }
 
-.calendar-main {
+.cal-main {
   flex: 1;
   min-width: 0;
 }
 
-.calendar-sidebar {
-  width: 350px;
+.cal-sidebar {
+  width: 360px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  gap: 30px;
+  gap: 16px;
+}
+
+.calendar-container h1 {
+  text-align: center;
+  color: var(--text-primary);
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+  line-height: 1.6;
+  margin-bottom: 30px;
+}
+
+.cal-main {
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(16px);
+  border-radius: 28px;
+  border: 1px solid rgba(255,255,255,0.75);
+  box-shadow: 0 8px 32px rgba(200,150,200,0.1);
+  padding: 0 20px 20px;
+}
+
+.cal-logo {
+  text-align: center;
+  padding: 20px 0 8px;
+}
+
+.cal-logo img {
+  max-height: 120px;
+  max-width: 240px;
+  object-fit: contain;
+  display: inline-block;
+}
+
+.cal-logo img[src="images/logo.png"]:not([naturalWidth]) {
+  display: none;
 }
 
 /* ── Events page view toggle ── */
@@ -687,109 +802,134 @@ footer span {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  gap: 15px;
+  margin-top: 16px;
+  padding: 0 4px;
 }
 
 .calendar-controls button {
-  background: linear-gradient(135deg, #d946a6, #ec4899);
-  color: white;
-  border: none;
-  padding: 12px 24px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: transparent;
+  border: 2px solid rgba(180, 150, 165, 0.35);
+  color: #b09098;
+  font-size: 26px;
+  font-weight: 900;
   cursor: pointer;
-  border-radius: 25px;
-  font-weight: bold;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(217, 70, 166, 0.3);
+  padding: 0;
+  line-height: 1;
+  transition: all 0.2s;
+  box-shadow: none;
+  font-family: Arial, sans-serif;
 }
 
 .calendar-controls button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(217, 70, 166, 0.4);
+  background: rgba(217, 70, 166, 0.1);
+  border-color: var(--pink);
+  color: var(--pink);
+  transform: none;
+  box-shadow: none;
 }
 
 .calendar-month {
-  font-size: 26px;
-  font-weight: bold;
-  color: #d946a6;
-  flex: 1;
+  font-size: 16px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  color: #7bbfea;
+  text-transform: uppercase;
   text-align: center;
 }
 
 .calendar-table {
   width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 15px;
-  overflow: hidden;
-  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.15);
-  margin-bottom: 40px;
+  border-collapse: separate;
+  border-spacing: 2px 4px;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+  box-shadow: none;
+  margin-bottom: 0;
 }
 
 .calendar-table th {
-  background: linear-gradient(135deg, #d946a6, #ec4899);
-  color: white;
-  padding: 18px;
+  background: transparent;
+  color: #7bbfea;
+  font-family: 'Dancing Script', cursive;
+  font-size: 22px;
+  font-weight: 700;
+  padding: 6px 4px 10px;
   text-align: center;
-  font-weight: bold;
-  font-size: 14px;
+  box-shadow: none;
 }
 
 .calendar-table td {
-  padding: 15px;
+  padding: 4px;
   text-align: center;
-  border: 1px solid #f0e6f6;
+  border: none;
+  background: transparent;
   cursor: pointer;
-  transition: all 0.3s ease;
-  height: 100px;
-  vertical-align: top;
+  height: auto;
+  vertical-align: middle;
   position: relative;
-  background: #fafbff;
 }
 
-.calendar-table td:hover {
-  background: #f5e6f9;
-  transform: translateY(-2px);
+.calendar-table td:hover .day-bubble {
+  background: rgba(217, 70, 166, 0.2);
 }
 
-.calendar-table td.other-month {
-  color: #d0d0d0;
-  background: #f9f9ff;
+.calendar-table td.other-month .day-bubble {
+  background: rgba(200, 190, 210, 0.12);
+  color: #ccc;
 }
 
-.calendar-table td.has-event {
-  background: linear-gradient(135deg, #ffe6f0, #fff0f6);
-  font-weight: bold;
+.calendar-table td.has-event .day-bubble {
+  background: rgba(255, 182, 193, 0.28);
+  color: #c06880;
+  font-weight: 700;
 }
 
-.calendar-table td.has-event:hover {
-  background: linear-gradient(135deg, #ffd4e8, #ffe6f0);
+.calendar-table td.past-event .day-bubble {
+  background: rgba(180, 160, 200, 0.32);
+  color: #a090b8;
+  font-weight: 700;
 }
 
-.calendar-table td.past-event {
-  background: linear-gradient(135deg, #e8e8f5, #f0e6ff);
-  font-weight: bold;
-  opacity: 0.8;
+.calendar-table td.today .day-bubble {
+  background: rgba(217, 70, 166, 0.55);
+  color: white;
 }
 
-.calendar-table td.past-event:hover {
-  background: linear-gradient(135deg, #dcdce8, #e0d4ff);
-}
-
-.calendar-table td.today {
-  background: #e6f3ff;
-  border: 2px solid #0066cc;
+.day-bubble {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(255, 182, 193, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  font-size: 15px;
+  color: #c06880;
+  transition: background 0.2s;
+  position: relative;
 }
 
 .event-dot {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  background: #d946a6;
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 5px;
+  height: 5px;
+  background: var(--pink);
   border-radius: 50%;
-  margin-top: 5px;
-  box-shadow: 0 2px 4px rgba(217, 70, 166, 0.3);
+  display: block;
+  margin: 0;
+  box-shadow: none;
 }
+
+.calendar-table td.today .event-dot { background: white; }
 
 .day-number {
   display: block;
@@ -800,11 +940,12 @@ footer span {
 }
 
 .events-section {
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.12);
-  border: 2px solid #ffe6f0;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(16px);
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.08);
+  border: 1px solid rgba(255,255,255,0.75);
 }
 
 .events-section h3 {
@@ -955,11 +1096,12 @@ footer span {
 }
 
 .next-event-section {
-  background: white;
-  padding: 30px;
-  border-radius: 15px;
-  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.12);
-  border: 2px solid #ffe6f0;
+  background: rgba(255,255,255,0.6);
+  backdrop-filter: blur(16px);
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(217, 70, 166, 0.08);
+  border: 1px solid rgba(255,255,255,0.75);
 }
 
 .next-event-section h3 {
@@ -1075,86 +1217,67 @@ footer span {
   }
 
   .calendar-container {
-    padding: 24px 12px;
+    padding: 24px 12px 40px;
   }
 
   .calendar-container h1 {
-    font-size: 26px;
+    font-size: 14px;
     margin-bottom: 20px;
   }
 
-  .calendar-content-wrapper {
+  .cal-layout {
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
   }
 
-  .calendar-sidebar {
+  .cal-sidebar {
     width: 100%;
-    gap: 20px;
-  }
-
-  .legend {
-    gap: 12px;
-    padding: 14px;
-    flex-wrap: wrap;
-  }
-
-  .legend-item {
-    font-size: 13px;
-  }
-
-  .calendar-controls {
-    gap: 8px;
-    margin-bottom: 16px;
   }
 
   .calendar-controls button {
-    padding: 10px 14px;
-    font-size: 13px;
-    white-space: nowrap;
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
   }
 
   .calendar-month {
-    font-size: 20px;
-  }
-
-  .calendar-table {
-    display: block;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    margin-bottom: 20px;
-  }
-
-  .calendar-table table,
-  .calendar-table tbody,
-  .calendar-table thead,
-  .calendar-table tr {
-    width: 100%;
-  }
-
-  .calendar-table th,
-  .calendar-table td {
-    min-width: 44px;
-    padding: 8px 4px;
-    height: 72px;
     font-size: 12px;
   }
 
-  .day-number {
-    font-size: 14px;
-    margin-bottom: 4px;
+  .calendar-table th {
+    font-size: 17px;
+    padding: 4px 2px 8px;
   }
 
-  .event-dot {
-    width: 8px;
-    height: 8px;
-    margin-top: 3px;
+  .calendar-table td {
+    padding: 2px;
+  }
+
+  .day-bubble {
+    width: 40px;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .cal-logo img {
+    max-height: 90px;
   }
 
   .events-section,
   .next-event-section {
     padding: 18px;
+  }
+}
+
+@media (max-width: 400px) {
+  .day-bubble {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+  }
+
+  .calendar-table th {
+    font-size: 15px;
   }
 }
 
@@ -1211,6 +1334,10 @@ footer span {
   margin-top: 0;
   margin-bottom: 20px;
   color: var(--text-primary);
+  font-family: 'Press Start 2P', monospace;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .member-grid {
@@ -1223,7 +1350,7 @@ footer span {
 .member-card {
   background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(247,249,255,0.92));
   border-radius: 18px;
-  padding: 15px;
+  padding: 10px 6px 12px;
   text-align: center;
   cursor: pointer;
   transition: transform 0.3s ease, box-shadow 0.3s ease, background 0.3s ease;
@@ -1250,11 +1377,13 @@ footer span {
 }
 
 .member-card img {
-  width: 120px;
-  height: 120px;
+  width: 100%;
+  height: 160px;
   object-fit: contain;
+  object-position: center bottom;
   border-radius: 0;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  display: block;
 }
 
 .member-card h3 {
@@ -1584,7 +1713,10 @@ footer span {
   text-align: center;
   color: var(--text-primary);
   margin-bottom: 40px;
-  font-size: 36px;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
+  line-height: 1.6;
 }
 
 .filter-section {
@@ -2140,10 +2272,12 @@ footer span {
 }
 
 .videos-container h1 {
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 20px;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
   color: var(--text-primary);
   margin-bottom: 24px;
+  line-height: 1.6;
 }
 
 .video-filter-bar {

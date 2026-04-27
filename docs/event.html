@@ -143,11 +143,12 @@
       }
 
       .ep-title {
-        font-size: clamp(22px, 3.5vw, 36px);
-        font-weight: 800;
+        font-size: clamp(14px, 2vw, 22px);
+        font-family: 'Press Start 2P', monospace;
+        font-weight: 400;
         color: var(--text-primary);
         margin: 0 0 20px;
-        line-height: 1.2;
+        line-height: 1.6;
       }
 
       .ep-meta-list {
@@ -321,9 +322,7 @@
         display: flex;
         align-items: stretch;
         gap: 10px;
-        margin-top: 36px;
-        padding-top: 24px;
-        border-top: 1px solid var(--border-soft);
+        margin-top: 16px;
       }
       .ep-evt-nav-btn {
         flex: 1;
@@ -405,10 +404,19 @@
       <div class="ep-details">
         <a href="calendar.html" class="ep-back" id="epBackBtn">← Back to Calendar</a>
 
+        <!-- Prev / Next navigation -->
+        <div id="epEvtNav"></div>
+
+        <div class="ep-divider"></div>
+
         <div id="epCategory" class="ep-category" style="display:none;"></div>
         <h1 id="epTitle" class="ep-title"></h1>
 
         <div id="epMetaList" class="ep-meta-list"></div>
+
+        <!-- Member actions -->
+        <div class="ep-divider"></div>
+        <div id="epMemberArea"></div>
 
         <!-- Description -->
         <div id="epDescSection" style="display:none;">
@@ -416,10 +424,6 @@
           <div class="ep-section-title">About This Event</div>
           <p id="epDesc" class="ep-desc"></p>
         </div>
-
-        <!-- Member actions -->
-        <div class="ep-divider"></div>
-        <div id="epMemberArea"></div>
 
         <!-- Photos -->
         <div id="epPhotosSection" style="display:none;">
@@ -434,9 +438,6 @@
           <div class="ep-section-title">🎬 Videos</div>
           <div id="epVideosList"></div>
         </div>
-
-        <!-- Prev / Next navigation -->
-        <div id="epEvtNav"></div>
       </div>
     </div>
 
