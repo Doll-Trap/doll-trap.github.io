@@ -189,23 +189,25 @@ nav #loginNavBtn:hover {
 
 .hero-kicker {
   margin: 0;
-  padding: 8px 16px;
+  padding: 10px 20px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.26);
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(7px, 1vw, 11px);
+  font-weight: 400;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
+  line-height: 1.6;
 }
 
 .hero-logo {
   margin: 0;
-  font-size: clamp(56px, 9vw, 110px);
-  line-height: 0.95;
-  letter-spacing: 0.02em;
-  font-family: "Snell Roundhand", "Brush Script MT", "Segoe Script", "Apple Chancery", cursive;
-  font-weight: 700;
+  font-size: clamp(28px, 5vw, 64px);
+  line-height: 1.4;
+  letter-spacing: 0.04em;
+  font-family: 'Press Start 2P', monospace;
+  font-weight: 400;
   color: #fff;
   text-shadow: 0 10px 26px rgba(15, 23, 42, 0.4), 0 0 18px rgba(236, 72, 153, 0.24);
 }
@@ -213,10 +215,11 @@ nav #loginNavBtn:hover {
 .hero-tagline {
   margin: 0;
   max-width: 560px;
-  font-size: clamp(16px, 2vw, 22px);
-  font-weight: 600;
-  line-height: 1.6;
-  letter-spacing: 0.03em;
+  font-family: 'Press Start 2P', monospace;
+  font-size: clamp(9px, 1.2vw, 14px);
+  font-weight: 400;
+  line-height: 2;
+  letter-spacing: 0.04em;
   color: rgba(255, 255, 255, 0.94);
 }
 
@@ -2289,8 +2292,9 @@ footer span {
 
 .videos-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 320px));
   gap: 22px;
+  justify-content: center;
 }
 
 .videos-loading,
@@ -2409,6 +2413,40 @@ footer span {
   overflow: hidden;
 }
 
+.video-card-embed {
+  cursor: default;
+}
+
+.video-card-embed:hover {
+  transform: none;
+  box-shadow: var(--shadow-soft);
+}
+
+.video-embed-wrap {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #1a1030;
+  overflow: hidden;
+}
+
+.video-embed-wrap iframe {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: none;
+}
+
+/* Wide cards for embed videos in grid */
+.videos-grid .video-card-embed {
+  grid-column: span 2;
+}
+
+@media (max-width: 600px) {
+  .videos-grid .video-card-embed {
+    grid-column: span 1;
+  }
+}
+
 /* Video links inside event modals / gallery details */
 .event-video-links {
   margin-top: 14px;
@@ -2470,7 +2508,7 @@ footer span {
 
 @media (max-width: 600px) {
   .videos-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 280px));
     gap: 14px;
   }
 }

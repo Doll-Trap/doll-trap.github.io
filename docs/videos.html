@@ -104,7 +104,10 @@
       }
 
       .vw-info {
-        padding: 6px 12px 10px;
+        padding: 8px 12px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
       }
 
       .vw-video-title {
@@ -112,6 +115,26 @@
         font-size: 9px;
         color: #4a3070;
         line-height: 1.6;
+      }
+
+      /* ── Retro card (inline on page) ── */
+      .vw-card {
+        background: #d0c0e8;
+        border: 3px solid #8a7aaa;
+        border-radius: 4px;
+        box-shadow:
+          inset 2px 2px 0 rgba(255,255,255,0.55),
+          inset -2px -2px 0 rgba(0,0,0,0.18),
+          6px 6px 0 #5a4878,
+          10px 10px 0 rgba(90,72,120,0.25);
+      }
+
+      /* grid of cards */
+      #videosGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 500px));
+        gap: 32px;
+        justify-content: center;
       }
     </style>
   </head>
@@ -247,33 +270,53 @@
           return;
         }
         grid.innerHTML = videos.map(v => {
-          const thumb = getVideoThumbnail(v);
-          const thumbHtml = thumb
-            ? `<img src="${thumb}" alt="${v.title}" class="video-thumb-img" loading="lazy">`
-            : `<div class="video-thumb-placeholder">🎬</div>`;
+          const embedUrl = getEmbedUrl(v.url);
           const eventBadge = v.event_title
             ? `<span class="video-event-badge">📅 ${v.event_title}</span>`
             : '';
           const descHtml = v.description
             ? `<p class="video-desc">${v.description}</p>`
             : '';
-          const embedUrl = getEmbedUrl(v.url);
-          const onclick = embedUrl
-            ? `onclick="openVideoModal('${embedUrl}', this.querySelector('.video-title').textContent)"`
-            : `onclick="window.open('${v.url}','_blank')"`;
-          return `
-            <div class="video-card" ${onclick} style="cursor:pointer;">
-              <div class="video-thumb">
-                ${thumbHtml}
-                <div class="video-play-overlay">▶</div>
+          if (embedUrl) {
+            const noAutoplay = embedUrl.replace('?autoplay=1', '').replace('&autoplay=1', '');
+            return `
+              <div class="vw-card">
+                <div class="vw-bar">
+                  <span class="vw-title">Doll Trap</span>
+                  <div class="vw-btns">
+                    <button class="vw-btn">□</button>
+                    <button class="vw-btn">—</button>
+                    <button class="vw-btn vw-close">✕</button>
+                  </div>
+                </div>
+                <div class="vw-screen">
+                  <iframe src="${noAutoplay}"
+                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen loading="lazy" frameborder="0"></iframe>
+                </div>
+                <div class="vw-info">
+                  ${eventBadge}
+                  <span class="vw-video-title">${v.title}</span>
+                  ${descHtml}
+                </div>
               </div>
-              <div class="video-info">
-                ${eventBadge}
-                <h3 class="video-title">${v.title}</h3>
-                ${descHtml}
-              </div>
-            </div>
-          `;
+            `;
+          } else {
+            const thumb = getVideoThumbnail(v);
+            return `
+              <a class="video-card" href="${v.url}" target="_blank" rel="noopener noreferrer">
+                <div class="video-thumb">
+                  ${thumb ? `<img src="${thumb}" alt="${v.title}" class="video-thumb-img" loading="lazy">` : '<div class="video-thumb-placeholder">🎬</div>'}
+                  <div class="video-play-overlay">▶</div>
+                </div>
+                <div class="video-info">
+                  ${eventBadge}
+                  <h3 class="video-title">${v.title}</h3>
+                  ${descHtml}
+                </div>
+              </a>
+            `;
+          }
         }).join('');
       }
 
