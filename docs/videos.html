@@ -127,14 +127,79 @@
           inset -2px -2px 0 rgba(0,0,0,0.18),
           6px 6px 0 #5a4878,
           10px 10px 0 rgba(90,72,120,0.25);
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+
+      .vw-card:hover {
+        transform: translateY(-3px) scale(1.01);
+        box-shadow:
+          inset 2px 2px 0 rgba(255,255,255,0.55),
+          inset -2px -2px 0 rgba(0,0,0,0.18),
+          8px 8px 0 #5a4878,
+          14px 14px 0 rgba(90,72,120,0.22);
+      }
+
+      .vw-preview {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .vw-thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        transition: transform 0.25s ease;
+      }
+
+      .vw-card:hover .vw-thumb-img {
+        transform: scale(1.05);
+      }
+
+      .vw-thumb-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.5rem;
+        background: #1a1030;
+      }
+
+      .vw-play-overlay {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.8rem;
+        color: white;
+        text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+        background: rgba(0,0,0,0);
+        transition: background 0.2s;
+        opacity: 0;
+        transition: opacity 0.2s, background 0.2s;
+      }
+
+      .vw-card:hover .vw-play-overlay {
+        opacity: 1;
+        background: rgba(30, 10, 60, 0.38);
       }
 
       /* grid of cards */
       #videosGrid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(320px, 500px));
-        gap: 32px;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 340px));
+        gap: 28px;
         justify-content: center;
+      }
+
+      @media (max-width: 600px) {
+        #videosGrid {
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+        }
       }
     </style>
   </head>
@@ -271,16 +336,18 @@
         }
         grid.innerHTML = videos.map(v => {
           const embedUrl = getEmbedUrl(v.url);
+          const thumb = getVideoThumbnail(v);
+          const thumbHtml = thumb
+            ? `<img src="${thumb}" alt="${v.title}" class="vw-thumb-img" loading="lazy">`
+            : `<div class="vw-thumb-placeholder">🎬</div>`;
           const eventBadge = v.event_title
             ? `<span class="video-event-badge">📅 ${v.event_title}</span>`
             : '';
-          const descHtml = v.description
-            ? `<p class="video-desc">${v.description}</p>`
-            : '';
           if (embedUrl) {
-            const noAutoplay = embedUrl.replace('?autoplay=1', '').replace('&autoplay=1', '');
+            const safeTitle = v.title.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+            const safeEmbed = embedUrl.replace(/'/g, '%27');
             return `
-              <div class="vw-card">
+              <div class="vw-card" onclick="openVideoModal('${safeEmbed}', '${safeTitle}')">
                 <div class="vw-bar">
                   <span class="vw-title">Doll Trap</span>
                   <div class="vw-btns">
@@ -289,30 +356,34 @@
                     <button class="vw-btn vw-close">✕</button>
                   </div>
                 </div>
-                <div class="vw-screen">
-                  <iframe src="${noAutoplay}"
-                    allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowfullscreen loading="lazy" frameborder="0"></iframe>
+                <div class="vw-screen vw-preview">
+                  ${thumbHtml}
+                  <div class="vw-play-overlay">▶</div>
                 </div>
                 <div class="vw-info">
                   ${eventBadge}
                   <span class="vw-video-title">${v.title}</span>
-                  ${descHtml}
                 </div>
               </div>
             `;
           } else {
-            const thumb = getVideoThumbnail(v);
             return `
-              <a class="video-card" href="${v.url}" target="_blank" rel="noopener noreferrer">
-                <div class="video-thumb">
-                  ${thumb ? `<img src="${thumb}" alt="${v.title}" class="video-thumb-img" loading="lazy">` : '<div class="video-thumb-placeholder">🎬</div>'}
-                  <div class="video-play-overlay">▶</div>
+              <a class="vw-card" href="${v.url}" target="_blank" rel="noopener noreferrer" style="text-decoration:none">
+                <div class="vw-bar">
+                  <span class="vw-title">Doll Trap</span>
+                  <div class="vw-btns">
+                    <button class="vw-btn">□</button>
+                    <button class="vw-btn">—</button>
+                    <button class="vw-btn vw-close">✕</button>
+                  </div>
                 </div>
-                <div class="video-info">
+                <div class="vw-screen vw-preview">
+                  ${thumbHtml}
+                  <div class="vw-play-overlay">↗</div>
+                </div>
+                <div class="vw-info">
                   ${eventBadge}
-                  <h3 class="video-title">${v.title}</h3>
-                  ${descHtml}
+                  <span class="vw-video-title">${v.title}</span>
                 </div>
               </a>
             `;
