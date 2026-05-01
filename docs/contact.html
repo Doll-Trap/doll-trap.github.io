@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact - Doll Trap</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+      .contact-container {
+        max-width: 680px;
+        margin: 0 auto;
+        padding: 50px 24px 80px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 36px;
+      }
+
+      .contact-container h1 {
+        font-family: 'Press Start 2P', monospace;
+        font-size: 20px;
+        font-weight: 400;
+        color: var(--text-primary);
+        line-height: 1.6;
+        margin: 0;
+        align-self: flex-start;
+      }
+
+      .contact-intro {
+        background: rgba(255, 255, 255, 0.72);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(217, 70, 166, 0.15);
+        border-radius: 18px;
+        padding: 24px 28px;
+        width: 100%;
+        box-sizing: border-box;
+        box-shadow: var(--shadow-soft);
+        text-align: center;
+        color: var(--text-secondary);
+        font-size: 0.93rem;
+        line-height: 1.7;
+      }
+
+      .contact-cards {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 100%;
+      }
+
+      .contact-card {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(217, 70, 166, 0.13);
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: var(--shadow-soft);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      }
+
+      .contact-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-medium);
+        border-color: rgba(217, 70, 166, 0.35);
+      }
+
+      .contact-card-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        flex-shrink: 0;
+      }
+
+      .icon-email   { background: linear-gradient(135deg, rgba(217,70,166,0.15), rgba(236,72,153,0.1)); }
+      .icon-ig      { background: linear-gradient(135deg, rgba(225,48,108,0.15), rgba(253,175,60,0.12)); }
+      .icon-xhs     { background: linear-gradient(135deg, rgba(255,60,60,0.15), rgba(255,100,80,0.1)); }
+      .icon-yt      { background: linear-gradient(135deg, rgba(255,0,0,0.12), rgba(200,0,0,0.08)); }
+
+      .contact-card-text {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .contact-card-label {
+        font-family: 'Press Start 2P', monospace;
+        font-size: 9px;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        text-transform: uppercase;
+      }
+
+      .contact-card-value {
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .contact-card-arrow {
+        color: var(--pink);
+        font-size: 1.1rem;
+        flex-shrink: 0;
+        opacity: 0.6;
+        transition: opacity 0.18s, transform 0.18s;
+      }
+
+      .contact-card:hover .contact-card-arrow {
+        opacity: 1;
+        transform: translateX(3px);
+      }
+
+      @media (max-width: 480px) {
+        .contact-container h1 { font-size: 14px; }
+        .contact-card { padding: 16px 18px; gap: 14px; }
+        .contact-card-icon { width: 44px; height: 44px; font-size: 1.3rem; }
+        .contact-card-value { font-size: 0.85rem; }
+      }
+    </style>
+  </head>
+
+  <body>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="members.html">Members</a>
+      <a href="calendar.html">Events</a>
+      <a href="gallery.html">Gallery</a>
+      <a href="videos.html">Videos</a>
+      <a href="contact.html" class="nav-active">Contact</a>
+      <a id="loginNavBtn" href="portal.html">🔑 Log In</a>
+    </nav>
+
+    <div class="contact-container">
+      <h1>Contact</h1>
+
+      <div class="contact-intro">
+        有合作邀请、商务洽谈，或者任何想说的话，都欢迎联系我们！<br>
+        For collaborations, bookings, or any inquiries, feel free to reach out.
+      </div>
+
+      <div class="contact-cards">
+
+        <!-- Email -->
+        <a class="contact-card" href="mailto:dolltrapofficial@gmail.com">
+          <div class="contact-card-icon icon-email">✉️</div>
+          <div class="contact-card-text">
+            <span class="contact-card-label">Email</span>
+            <span class="contact-card-value">dolltrapofficial@gmail.com</span>
+          </div>
+          <span class="contact-card-arrow">→</span>
+        </a>
+
+        <!-- Instagram -->
+        <a class="contact-card" href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">
+          <div class="contact-card-icon icon-ig">📸</div>
+          <div class="contact-card-text">
+            <span class="contact-card-label">Instagram</span>
+            <span class="contact-card-value">@kyk_doll_trap</span>
+          </div>
+          <span class="contact-card-arrow">→</span>
+        </a>
+
+        <!-- RedNote -->
+        <a class="contact-card" href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">
+          <div class="contact-card-icon icon-xhs">📖</div>
+          <div class="contact-card-text">
+            <span class="contact-card-label">RedNote / 小红书</span>
+            <span class="contact-card-value">Doll Trap</span>
+          </div>
+          <span class="contact-card-arrow">→</span>
+        </a>
+
+        <!-- YouTube -->
+        <a class="contact-card" href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">
+          <div class="contact-card-icon icon-yt">▶️</div>
+          <div class="contact-card-text">
+            <span class="contact-card-label">YouTube</span>
+            <span class="contact-card-value">@ksm_doll_trap</span>
+          </div>
+          <span class="contact-card-arrow">→</span>
+        </a>
+
+      </div>
+    </div>
+
+    <footer>
+      Follow Doll Trap on
+      <a href="https://www.instagram.com/kyk_doll_trap?igsh=MWR5ZDhnNTRvdjA4ZQ==" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <span>·</span>
+      <a href="https://xhslink.com/m/AtFuH3oz3Lz" target="_blank" rel="noopener noreferrer">RedNote</a>
+      <span>·</span>
+      <a href="https://youtube.com/@ksm_doll_trap?si=y9Q1hdPEBzB3alXG" target="_blank" rel="noopener noreferrer">YouTube</a>
+    </footer>
+
+    <script>
+      function parseJwt(token) {
+        try { return JSON.parse(atob(token.split('.')[1])); } catch { return null; }
+      }
+      function updateNavLoginState() {
+        const btn = document.getElementById('loginNavBtn');
+        if (!btn) return;
+        const adminTok = localStorage.getItem('authToken');
+        const memberTok = localStorage.getItem('memberToken');
+        if (adminTok) {
+          const p = parseJwt(adminTok);
+          btn.textContent = '⚙️ ' + (p?.username || 'Admin');
+          btn.href = 'admin.html';
+          btn.style.background = 'linear-gradient(135deg, #7c3aed, #ec4899)';
+        } else if (memberTok) {
+          const p = parseJwt(memberTok);
+          btn.textContent = '🎀 ' + (p?.display_name || 'Portal');
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        } else {
+          btn.textContent = '🔑 Log In';
+          btn.href = 'portal.html';
+          btn.style.background = 'linear-gradient(135deg, #d946a6, #ec4899)';
+        }
+      }
+      updateNavLoginState();
+    </script>
+  </body>
+</html>
