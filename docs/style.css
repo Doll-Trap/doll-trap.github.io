@@ -2789,32 +2789,6 @@ footer span {
   flex-wrap: wrap;
   margin-bottom: 8px;
 }
-.cheer-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: 999px;
-  border: 1.5px solid var(--pink, #d946a6);
-  background: transparent;
-  color: var(--pink, #d946a6);
-  font-size: 13px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s, transform 0.15s;
-}
-.cheer-btn:hover { background: rgba(217,70,166,0.12); transform: scale(1.04); }
-.cheer-btn.cheered {
-  background: var(--pink, #d946a6);
-  color: #fff;
-}
-.cheer-count {
-  font-size: 0.82rem;
-  font-weight: 600;
-  background: rgba(255,255,255,0.18);
-  padding: 1px 7px;
-  border-radius: 999px;
-}
 
 /* ── Member photo gallery in detail panel ────────────────────────── */
 .member-gallery-section {

@@ -90,8 +90,6 @@
           color: 'Blue',
           colorHex: '#3b82f6',
           level: '01',
-          role: 'Dancer / Performer',
-          about: 'The heart of the group with incredible dance skills and stage presence.',
           socials: [
             { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/kokona_oh?igsh=MTgwcTlyM3o2ZGUzaQ%3D%3D&utm_source=qr' },
           ]
@@ -106,8 +104,6 @@
           color: 'Red',
           colorHex: '#dc2626',
           level: '01',
-          role: 'Vocal / Dancer',
-          about: 'Versatile performer with a soothing voice and graceful movements.',
           socials: [
             { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/nangongxiaoling?igsh=c282djk4eWY3dW9u' },
           ]
@@ -122,8 +118,6 @@
           color: 'Pink',
           colorHex: '#f9a8d4',
           level: '01',
-          role: 'Performer / Dancer',
-          about: 'Dynamic performer bringing energy and humor to every stage.',
           socials: [
             { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/buzz_zzly?igsh=YWd2MXU4b3d4amQ=' },
           ]
@@ -178,18 +172,13 @@
               <div class="detail-stat">
                 <p><strong>MBTI:</strong> ${member.mbti}</p>
                 <p><strong>Birthday:</strong> ${member.birthday} <span class="birthday-countdown">🎂 ${countdown}</span></p>
-                <p><strong>Role:</strong> ${member.role}</p>
               </div>
               <div class="detail-action-row">
-                <button class="cheer-btn" id="cheerBtn-${member.name}" onclick="toggleCheer('${member.name}')">
-                  ✨ Cheer <span class="cheer-count" id="cheerCount-${member.name}">…</span>
-                </button>
                 ${member.socials?.length ? member.socials.map(s => `<a class="social-link" href="${s.url}" target="_blank" rel="noopener">${s.icon} ${s.label}</a>`).join('') : ''}
               </div>
             </div>
             <div class="detail-level">Lv ${member.level}</div>
           </div>
-          <p class="member-about">${member.about}</p>
           <div class="member-gallery-section">
             <div class="member-gallery-title">🖼️ Photos</div>
             <div class="member-gallery" id="memberGallery-${member.name}">
@@ -209,55 +198,6 @@
         `;
         loadMessages(member.name);
         loadMemberGallery(member.name);
-        loadCheerCount(member.name);
-      }
-
-      // ── Session ID for cheers (anonymous, per-browser) ─────────────────────
-      function getCheerSession() {
-        let s = localStorage.getItem('cheerSession');
-        if (!s) {
-          s = 'cs-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
-          localStorage.setItem('cheerSession', s);
-        }
-        return s;
-      }
-
-      async function loadCheerCount(idolName) {
-        try {
-          const sid = getCheerSession();
-          const res = await fetch(`${API_URL}/members/cheers/${encodeURIComponent(idolName)}?session_id=${sid}`);
-          const data = res.ok ? await res.json() : { count: 0, cheered: false };
-          const btn = document.getElementById(`cheerBtn-${idolName}`);
-          const cnt = document.getElementById(`cheerCount-${idolName}`);
-          if (!btn || !cnt) return;
-          cnt.textContent = data.count;
-          btn.classList.toggle('cheered', data.cheered);
-          btn.title = data.cheered ? 'Un-cheer' : 'Cheer!';
-        } catch { /* silent */ }
-      }
-
-      async function toggleCheer(idolName) {
-        const sid = getCheerSession();
-        const btn = document.getElementById(`cheerBtn-${idolName}`);
-        if (btn) btn.disabled = true;
-        try {
-          const res = await fetch(`${API_URL}/members/cheers/${encodeURIComponent(idolName)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ session_id: sid })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            const cnt = document.getElementById(`cheerCount-${idolName}`);
-            if (cnt) cnt.textContent = data.count;
-            if (btn) {
-              btn.classList.toggle('cheered', data.cheered);
-              btn.title = data.cheered ? 'Un-cheer' : 'Cheer!';
-              btn.animate([{transform:'scale(1)'},{transform:'scale(1.25)'},{transform:'scale(1)'}], {duration:300});
-            }
-          }
-        } catch { /* silent */ }
-        if (btn) btn.disabled = false;
       }
 
       function thumbUrl(url, width = 400) {

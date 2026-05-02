@@ -21,7 +21,7 @@ membersRouter.post('/register', async (c) => {
     if (!display_name || !email || !password) return c.json({ error: 'Display name, email and password required' }, 400)
     if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
 
-    const existing = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE email=?', email)
+    const existing = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE LOWER(email)=LOWER(?)', email)
     if (existing) return c.json({ error: 'Email already registered' }, 409)
 
     const hash = await bcrypt.hash(password, 8)
@@ -39,7 +39,7 @@ membersRouter.post('/login', async (c) => {
     const { email, password } = await c.req.json<any>()
     if (!email || !password) return c.json({ error: 'Email and password required' }, 400)
 
-    const member = await dbFirst(c.env.DB, 'SELECT * FROM members WHERE email=?', email)
+    const member = await dbFirst(c.env.DB, 'SELECT * FROM members WHERE LOWER(email)=LOWER(?)', email)
     if (!member) return c.json({ error: 'Invalid email or password' }, 401)
 
     const match = await bcrypt.compare(password, member.password_hash as string)
@@ -123,11 +123,11 @@ membersRouter.post('/magic/send', async (c) => {
     if (!display_name) return c.json({ error: 'Display name required' }, 400)
     if (!password || password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
 
-    const existing = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE email=?', email)
+    const existing = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE LOWER(email)=LOWER(?)', email)
     if (existing) return c.json({ error: 'Email already registered' }, 409)
 
     const hash = await bcrypt.hash(password, 8)
-    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=? AND purpose=?', email, 'verify')
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE LOWER(email)=LOWER(?) AND purpose=?', email, 'verify')
 
     const token = generateToken()
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60
@@ -181,10 +181,10 @@ membersRouter.post('/forgot-password', async (c) => {
     const { email } = await c.req.json<any>()
     if (!email) return c.json({ error: 'Email required' }, 400)
 
-    const member = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE email=?', email)
+    const member = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE LOWER(email)=LOWER(?)', email)
     if (!member) return c.json({ sent: true }) // don't reveal if email exists
 
-    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=? AND purpose=?', email, 'reset')
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE LOWER(email)=LOWER(?) AND purpose=?', email, 'reset')
 
     const token = generateToken()
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60
@@ -240,7 +240,7 @@ membersRouter.post('/reset-password', async (c) => {
 
     await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
     const hash = await bcrypt.hash(password, 8)
-    await dbRun(c.env.DB, 'UPDATE members SET password_hash=? WHERE email=?', hash, row.email)
+    await dbRun(c.env.DB, 'UPDATE members SET password_hash=? WHERE LOWER(email)=LOWER(?)', hash, row.email)
 
     return c.json({ success: true })
   } catch (err: any) { return c.json({ error: err.message }, 500) }
@@ -288,7 +288,7 @@ membersRouter.get('/auth/google/callback', async (c) => {
     const gu = await userRes.json() as any
     if (!gu.email) return fail('No email returned from Google')
 
-    let member = await dbFirst(c.env.DB, 'SELECT * FROM members WHERE email=?', gu.email)
+    let member = await dbFirst(c.env.DB, 'SELECT * FROM members WHERE LOWER(email)=LOWER(?)', gu.email)
     if (!member) {
       member = await dbFirst(c.env.DB,
         'INSERT INTO members (display_name,email,password_hash,email_verified,email_updates) VALUES (?,?,?,1,0) RETURNING id,display_name,email,email_updates,created_at',
