@@ -17,7 +17,7 @@ function memberToken(m: Record<string, unknown>, secret: string) {
 
 membersRouter.post('/register', async (c) => {
   try {
-    const { display_name, email, password } = await c.req.json<any>()
+    const { display_name, email, password, email_updates } = await c.req.json<any>()
     if (!display_name || !email || !password) return c.json({ error: 'Display name, email and password required' }, 400)
     if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
 
@@ -26,8 +26,8 @@ membersRouter.post('/register', async (c) => {
 
     const hash = await bcrypt.hash(password, 8)
     const member = await dbFirst(c.env.DB,
-      'INSERT INTO members (display_name,email,password_hash) VALUES (?,?,?) RETURNING id,display_name,email,created_at',
-      display_name, email, hash,
+      'INSERT INTO members (display_name,email,password_hash,email_verified,email_updates) VALUES (?,?,?,1,?) RETURNING id,display_name,email,email_updates,created_at',
+      display_name, email, hash, email_updates ? 1 : 0,
     )
     const token = await memberToken(member!, c.env.JWT_SECRET)
     return c.json({ token, member }, 201)
@@ -102,28 +102,15 @@ function generateToken(): string {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
-async function sendMagicEmail(apiKey: string, from: string, to: string, verifyUrl: string, isNew: boolean) {
-  const action = isNew ? 'verify your email and create your account' : 'log in to your account'
-  const res = await fetch('https://api.resend.com/emails', {
+async function sendEmail(apiKey: string, to: string, subject: string, html: string) {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from,
-      to,
-      subject: isNew ? '🌸 Welcome to Doll Trap — verify your email' : '🔑 Your Doll Trap login link',
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:16px">
-          <h2 style="color:#d946a6;font-size:22px;margin-bottom:8px">Doll Trap</h2>
-          <p style="color:#333;font-size:15px;line-height:1.6">
-            Click the button below to ${action}.<br>
-            This link expires in <strong>15 minutes</strong>.
-          </p>
-          <a href="${verifyUrl}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#d946a6,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700">
-            ${isNew ? '✉️ Verify Email' : '🔑 Log In'}
-          </a>
-          <p style="color:#888;font-size:12px">If you didn't request this, you can ignore this email.</p>
-        </div>
-      `,
+      sender: { name: 'Doll Trap', email: 'dolltrapofficial@gmail.com' },
+      to: [{ email: to }],
+      subject,
+      htmlContent: html,
     }),
   })
   if (!res.ok) throw new Error(`Email send failed: ${await res.text()}`)
@@ -140,22 +127,26 @@ membersRouter.post('/magic/send', async (c) => {
     if (existing) return c.json({ error: 'Email already registered' }, 409)
 
     const hash = await bcrypt.hash(password, 8)
-
-    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=?', email)
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=? AND purpose=?', email, 'verify')
 
     const token = generateToken()
     const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60
-
     await dbRun(c.env.DB,
-      'INSERT INTO magic_tokens (token, email, display_name, password_hash, email_updates, expires_at) VALUES (?,?,?,?,?,?)',
-      token, email, display_name, hash, email_updates ? 1 : 0, expiresAt,
+      'INSERT INTO magic_tokens (token, email, display_name, password_hash, email_updates, purpose, expires_at) VALUES (?,?,?,?,?,?,?)',
+      token, email, display_name, hash, email_updates ? 1 : 0, 'verify', expiresAt,
     )
 
-    const baseUrl = c.env.FRONTEND_URL || 'https://dolltrap.github.io/docs'
+    const baseUrl = c.env.FRONTEND_URL || 'https://doll-trap.github.io'
     const verifyUrl = `https://api.dolltrap.workers.dev/api/members/magic/verify?token=${token}&return=${encodeURIComponent(baseUrl + '/portal.html')}`
 
-    const from = c.env.RESEND_FROM || 'Doll Trap <onboarding@resend.dev>'
-    await sendMagicEmail(c.env.RESEND_API_KEY, from, email, verifyUrl, true)
+    await sendEmail(c.env.BREVO_API_KEY, email, '🌸 Verify your Doll Trap account', `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:16px">
+        <h2 style="color:#d946a6">Doll Trap</h2>
+        <p style="color:#333;font-size:15px;line-height:1.6">Click the button below to verify your email and create your account.<br>This link expires in <strong>15 minutes</strong>.</p>
+        <a href="${verifyUrl}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#d946a6,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700">✉️ Verify Email</a>
+        <p style="color:#888;font-size:12px">If you didn't request this, you can ignore this email.</p>
+      </div>`
+    )
 
     return c.json({ sent: true })
   } catch (err: any) { return c.json({ error: err.message }, 500) }
@@ -163,31 +154,96 @@ membersRouter.post('/magic/send', async (c) => {
 
 membersRouter.get('/magic/verify', async (c) => {
   const token = c.req.query('token')
-  const returnUrl = c.req.query('return') || 'https://dolltrap.github.io/docs/portal.html'
+  const returnUrl = c.req.query('return') || 'https://doll-trap.github.io/portal.html'
   const fail = (msg: string) => Response.redirect(`${returnUrl}?authError=${encodeURIComponent(msg)}`, 302)
 
   if (!token) return fail('Missing token')
-
   try {
-    const row = await dbFirst(c.env.DB, 'SELECT * FROM magic_tokens WHERE token=?', token)
+    const row = await dbFirst(c.env.DB, 'SELECT * FROM magic_tokens WHERE token=? AND purpose=?', token, 'verify')
     if (!row) return fail('Invalid or expired link')
     if (Number(row.expires_at) < Math.floor(Date.now() / 1000)) {
       await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
       return fail('Link expired — please request a new one')
     }
-
     await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
 
     const member = await dbFirst(c.env.DB,
-      'INSERT INTO members (display_name, email, password_hash, email_verified, email_updates) VALUES (?,?,?,1,?) RETURNING id,display_name,email,email_updates,created_at',
+      'INSERT INTO members (display_name,email,password_hash,email_verified,email_updates) VALUES (?,?,?,1,?) RETURNING id,display_name,email,email_updates,created_at',
       row.display_name, row.email, row.password_hash, Number(row.email_updates),
     )
-
     const jwt = await memberToken(member!, c.env.JWT_SECRET)
     return Response.redirect(`${returnUrl}?memberToken=${encodeURIComponent(jwt)}`, 302)
-  } catch (err: any) {
-    return fail('Something went wrong')
-  }
+  } catch { return fail('Something went wrong') }
+})
+
+membersRouter.post('/forgot-password', async (c) => {
+  try {
+    const { email } = await c.req.json<any>()
+    if (!email) return c.json({ error: 'Email required' }, 400)
+
+    const member = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE email=?', email)
+    if (!member) return c.json({ sent: true }) // don't reveal if email exists
+
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=? AND purpose=?', email, 'reset')
+
+    const token = generateToken()
+    const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60
+    await dbRun(c.env.DB,
+      'INSERT INTO magic_tokens (token, email, purpose, expires_at) VALUES (?,?,?,?)',
+      token, email, 'reset', expiresAt,
+    )
+
+    const baseUrl = c.env.FRONTEND_URL || 'https://doll-trap.github.io'
+    const resetUrl = `https://api.dolltrap.workers.dev/api/members/reset-password/verify?token=${token}&return=${encodeURIComponent(baseUrl + '/portal.html')}`
+    await sendEmail(c.env.BREVO_API_KEY, email, '🔑 Reset your Doll Trap password', `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:16px">
+        <h2 style="color:#d946a6">Doll Trap</h2>
+        <p style="color:#333;font-size:15px;line-height:1.6">Click the button below to reset your password. This link expires in <strong>15 minutes</strong>.</p>
+        <a href="${resetUrl}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#d946a6,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700">🔑 Reset Password</a>
+        <p style="color:#888;font-size:12px">If you didn't request this, you can ignore this email.</p>
+      </div>`
+    )
+
+    return c.json({ sent: true })
+  } catch (err: any) { return c.json({ error: err.message }, 500) }
+})
+
+membersRouter.get('/reset-password/verify', async (c) => {
+  const token = c.req.query('token')
+  const returnUrl = c.req.query('return') || 'https://doll-trap.github.io/portal.html'
+  const fail = (msg: string) => Response.redirect(`${returnUrl}?authError=${encodeURIComponent(msg)}`, 302)
+
+  if (!token) return fail('Missing token')
+  try {
+    const row = await dbFirst(c.env.DB, 'SELECT * FROM magic_tokens WHERE token=? AND purpose=?', token, 'reset')
+    if (!row) return fail('Invalid or expired reset link')
+    if (Number(row.expires_at) < Math.floor(Date.now() / 1000)) {
+      await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
+      return fail('Reset link expired — please request a new one')
+    }
+    return Response.redirect(`${returnUrl}?resetToken=${encodeURIComponent(token)}`, 302)
+  } catch { return fail('Something went wrong') }
+})
+
+membersRouter.post('/reset-password', async (c) => {
+  try {
+    const { token, password } = await c.req.json<any>()
+    if (!token || !password) return c.json({ error: 'Token and password required' }, 400)
+    if (password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+
+    const row = await dbFirst(c.env.DB, 'SELECT * FROM magic_tokens WHERE token=? AND purpose=?', token, 'reset')
+    if (!row) return c.json({ error: 'Invalid or expired reset link' }, 400)
+    if (Number(row.expires_at) < Math.floor(Date.now() / 1000)) {
+      await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
+      return c.json({ error: 'Reset link expired — please request a new one' }, 400)
+    }
+
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
+    const hash = await bcrypt.hash(password, 8)
+    await dbRun(c.env.DB, 'UPDATE members SET password_hash=? WHERE email=?', hash, row.email)
+
+    return c.json({ success: true })
+  } catch (err: any) { return c.json({ error: err.message }, 500) }
 })
 
 // ── Google OAuth ──────────────────────────────────────────────

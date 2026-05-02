@@ -509,6 +509,9 @@
           </form>
           <p class="portal-msg" id="loginMsg"></p>
           <div class="auth-toggle">
+            <a onclick="showForgot()" style="font-size:13px;color:var(--text-secondary)">Forgot password?</a>
+          </div>
+          <div class="auth-toggle">
             Don't have an account? <a onclick="showRegister()">Sign up</a>
           </div>
         </div>
@@ -543,7 +546,7 @@
                 Subscribe to monthly updates 🎀
               </label>
             </div>
-            <button type="submit" class="submit-btn" id="registerSubmitBtn">Send Verification Email</button>
+            <button type="submit" class="submit-btn" id="registerSubmitBtn">Create Account</button>
           </form>
           <p class="portal-msg" id="registerMsg"></p>
           <div class="auth-toggle">
@@ -554,12 +557,44 @@
         <!-- Sent State -->
         <div class="auth-card" id="sentCard" style="display:none;text-align:center">
           <div style="font-size:2.5rem;margin-bottom:16px">📬</div>
-          <h2 id="sentTitle">Check your email!</h2>
+          <h2>Check your email!</h2>
           <p style="color:var(--text-secondary);font-size:14px;line-height:1.7;margin:0 0 20px">
-            We sent a magic link to <strong id="sentEmail"></strong>.<br>
-            Click it to log in — it expires in 15 minutes.
+            We sent a verification link to <strong id="sentEmail"></strong>.<br>
+            Click it to activate your account — expires in 15 minutes.
           </p>
-          <button class="submit-btn" onclick="showLogin()" style="width:auto;padding:10px 24px;font-size:14px">← Back</button>
+          <button class="submit-btn" onclick="showRegister()" style="width:auto;padding:10px 24px;font-size:14px">← Back</button>
+        </div>
+
+        <!-- Forgot Password Form -->
+        <div class="auth-card" id="forgotCard" style="display:none;">
+          <h2>Reset password 🔑</h2>
+          <form class="portal-form" id="forgotForm">
+            <div class="form-group">
+              <label>Email</label>
+              <input type="email" id="forgotEmail" placeholder="you@example.com" required>
+            </div>
+            <button type="submit" class="submit-btn" id="forgotSubmitBtn">Send Reset Link</button>
+          </form>
+          <p class="portal-msg" id="forgotMsg"></p>
+          <div class="auth-toggle">
+            <a onclick="showLogin()">← Back to login</a>
+          </div>
+        </div>
+
+        <!-- Reset Password Form (shown when ?resetToken= in URL) -->
+        <div class="auth-card" id="resetCard" style="display:none;">
+          <h2>New password 🔑</h2>
+          <form class="portal-form" id="resetForm">
+            <div class="form-group">
+              <label>New Password</label>
+              <div class="pw-wrap">
+                <input type="password" id="resetPassword" placeholder="At least 6 characters" required minlength="6">
+                <button type="button" class="pw-toggle" onclick="togglePw('resetPassword', this)" tabindex="-1">👁️</button>
+              </div>
+            </div>
+            <button type="submit" class="submit-btn" id="resetSubmitBtn">Set Password</button>
+          </form>
+          <p class="portal-msg" id="resetMsg"></p>
         </div>
       </div>
 
@@ -708,22 +743,12 @@
       updateNavLoginState();
 
       // ── Auth UI toggles ────────────────────────────
-      function showLogin() {
-        document.getElementById('loginCard').style.display = '';
-        document.getElementById('registerCard').style.display = 'none';
-        document.getElementById('sentCard').style.display = 'none';
-      }
-      function showRegister() {
-        document.getElementById('loginCard').style.display = 'none';
-        document.getElementById('registerCard').style.display = '';
-        document.getElementById('sentCard').style.display = 'none';
-      }
-      function showSent(email) {
-        document.getElementById('loginCard').style.display = 'none';
-        document.getElementById('registerCard').style.display = 'none';
-        document.getElementById('sentCard').style.display = '';
-        document.getElementById('sentEmail').textContent = email;
-      }
+      const authCards = ['loginCard','registerCard','sentCard','forgotCard','resetCard'];
+      function showOnly(id) { authCards.forEach(c => document.getElementById(c).style.display = c === id ? '' : 'none'); }
+      function showLogin()    { showOnly('loginCard'); }
+      function showRegister() { showOnly('registerCard'); }
+      function showForgot()   { showOnly('forgotCard'); }
+      function showReset()    { showOnly('resetCard'); }
 
       function showMsg(id, text, type) {
         const el = document.getElementById(id);
@@ -759,7 +784,8 @@
         }
       });
 
-      // ── Magic Link: Register ───────────────────────
+      // ── Register (email verification) ─────────────
+      let sentEmail = '';
       document.getElementById('memberRegisterForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const btn = document.getElementById('registerSubmitBtn');
@@ -770,15 +796,17 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              email,
               display_name: document.getElementById('regName').value.trim(),
+              email,
               password: document.getElementById('regPassword').value,
               email_updates: document.getElementById('regEmailUpdates').checked
             })
           });
           const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed to send');
-          showSent(email);
+          if (!res.ok) throw new Error(data.error);
+          sentEmail = email;
+          showOnly('sentCard');
+          document.getElementById('sentEmail').textContent = email;
         } catch (err) {
           showMsg('registerMsg', err.message, 'error');
         } finally {
@@ -786,19 +814,66 @@
         }
       });
 
-      // ── Handle magic link return (?memberToken=...) ─
-      (function handleMagicReturn() {
+      // ── Forgot password ────────────────────────────
+      document.getElementById('forgotForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('forgotSubmitBtn');
+        const email = document.getElementById('forgotEmail').value.trim();
+        btn.disabled = true; btn.textContent = 'Sending…';
+        try {
+          await fetch(`${API_URL}/members/forgot-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+          });
+          showMsg('forgotMsg', 'If that email exists, a reset link has been sent. Check your inbox!', 'success');
+        } catch (_) {
+          showMsg('forgotMsg', 'Something went wrong. Please try again.', 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Send Reset Link';
+        }
+      });
+
+      // ── Reset password ─────────────────────────────
+      let pendingResetToken = null;
+      document.getElementById('resetForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('resetSubmitBtn');
+        btn.disabled = true; btn.textContent = 'Saving…';
+        try {
+          const res = await fetch(`${API_URL}/members/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ token: pendingResetToken, password: document.getElementById('resetPassword').value })
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.error);
+          showMsg('resetMsg', 'Password updated! You can now log in.', 'success');
+          setTimeout(() => showLogin(), 2000);
+        } catch (err) {
+          showMsg('resetMsg', err.message, 'error');
+        } finally {
+          btn.disabled = false; btn.textContent = 'Set Password';
+        }
+      });
+
+      // ── Handle return URL params ───────────────────
+      (function handleUrlParams() {
         const params = new URLSearchParams(location.search);
         const tok = params.get('memberToken');
+        const resetTok = params.get('resetToken');
         const err = params.get('authError');
+        history.replaceState({}, '', location.pathname);
         if (tok) {
           localStorage.setItem('memberToken', tok);
           memberToken = tok;
-          history.replaceState({}, '', location.pathname);
+        }
+        if (resetTok) {
+          pendingResetToken = resetTok;
+          showReset();
         }
         if (err) {
           showMsg('loginMsg', decodeURIComponent(err), 'error');
-          history.replaceState({}, '', location.pathname);
         }
       })();
 
