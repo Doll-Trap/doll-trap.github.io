@@ -107,7 +107,7 @@ async function sendEmail(apiKey: string, to: string, subject: string, html: stri
     method: 'POST',
     headers: { 'api-key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sender: { name: 'Doll Trap', email: 'dolltrapofficial@gmail.com' },
+      sender: { name: 'Doll Trap', email: 'no-reply@dolltrap.com' },
       to: [{ email: to }],
       subject,
       htmlContent: html,
