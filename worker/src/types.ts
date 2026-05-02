@@ -4,6 +4,11 @@ export type Bindings = {
   SUPABASE_URL: string
   SUPABASE_SERVICE_ROLE_KEY: string
   NODE_ENV: string
+  RESEND_API_KEY: string
+  RESEND_FROM: string
+  FRONTEND_URL: string
+  GOOGLE_CLIENT_ID: string
+  GOOGLE_CLIENT_SECRET: string
 }
 
 export type Variables = {

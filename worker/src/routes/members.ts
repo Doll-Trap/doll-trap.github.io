@@ -53,9 +53,18 @@ membersRouter.post('/login', async (c) => {
 membersRouter.get('/verify', memberAuthMiddleware, async (c) => {
   try {
     const me = c.get('member') as any
-    const member = await dbFirst(c.env.DB, 'SELECT id,display_name,email,avatar_url,created_at FROM members WHERE id=?', me.id)
+    const member = await dbFirst(c.env.DB, 'SELECT id,display_name,email,avatar_url,email_updates,created_at FROM members WHERE id=?', me.id)
     if (!member) return c.json({ error: 'Member not found' }, 404)
     return c.json({ valid: true, member })
+  } catch (err: any) { return c.json({ error: err.message }, 500) }
+})
+
+membersRouter.put('/email-updates', memberAuthMiddleware, async (c) => {
+  try {
+    const { email_updates } = await c.req.json<any>()
+    const me = c.get('member') as any
+    await dbRun(c.env.DB, 'UPDATE members SET email_updates=? WHERE id=?', email_updates ? 1 : 0, me.id)
+    return c.json({ email_updates: !!email_updates })
   } catch (err: any) { return c.json({ error: err.message }, 500) }
 })
 
@@ -83,6 +92,161 @@ membersRouter.post('/change-password', memberAuthMiddleware, async (c) => {
     await dbRun(c.env.DB, 'UPDATE members SET password_hash=? WHERE id=?', await bcrypt.hash(newPassword, 8), me.id)
     return c.json({ message: 'Password updated' })
   } catch (err: any) { return c.json({ error: err.message }, 500) }
+})
+
+// ── Magic Link Auth ───────────────────────────────────────────
+
+function generateToken(): string {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+async function sendMagicEmail(apiKey: string, from: string, to: string, verifyUrl: string, isNew: boolean) {
+  const action = isNew ? 'verify your email and create your account' : 'log in to your account'
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from,
+      to,
+      subject: isNew ? '🌸 Welcome to Doll Trap — verify your email' : '🔑 Your Doll Trap login link',
+      html: `
+        <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#fff;border-radius:16px">
+          <h2 style="color:#d946a6;font-size:22px;margin-bottom:8px">Doll Trap</h2>
+          <p style="color:#333;font-size:15px;line-height:1.6">
+            Click the button below to ${action}.<br>
+            This link expires in <strong>15 minutes</strong>.
+          </p>
+          <a href="${verifyUrl}" style="display:inline-block;margin:24px 0;padding:14px 28px;background:linear-gradient(135deg,#d946a6,#ec4899);color:#fff;text-decoration:none;border-radius:10px;font-size:15px;font-weight:700">
+            ${isNew ? '✉️ Verify Email' : '🔑 Log In'}
+          </a>
+          <p style="color:#888;font-size:12px">If you didn't request this, you can ignore this email.</p>
+        </div>
+      `,
+    }),
+  })
+  if (!res.ok) throw new Error(`Email send failed: ${await res.text()}`)
+}
+
+membersRouter.post('/magic/send', async (c) => {
+  try {
+    const { email, display_name, password, email_updates } = await c.req.json<any>()
+    if (!email) return c.json({ error: 'Email required' }, 400)
+    if (!display_name) return c.json({ error: 'Display name required' }, 400)
+    if (!password || password.length < 6) return c.json({ error: 'Password must be at least 6 characters' }, 400)
+
+    const existing = await dbFirst(c.env.DB, 'SELECT id FROM members WHERE email=?', email)
+    if (existing) return c.json({ error: 'Email already registered' }, 409)
+
+    const hash = await bcrypt.hash(password, 8)
+
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE email=?', email)
+
+    const token = generateToken()
+    const expiresAt = Math.floor(Date.now() / 1000) + 15 * 60
+
+    await dbRun(c.env.DB,
+      'INSERT INTO magic_tokens (token, email, display_name, password_hash, email_updates, expires_at) VALUES (?,?,?,?,?,?)',
+      token, email, display_name, hash, email_updates ? 1 : 0, expiresAt,
+    )
+
+    const baseUrl = c.env.FRONTEND_URL || 'https://dolltrap.github.io/docs'
+    const verifyUrl = `https://api.dolltrap.workers.dev/api/members/magic/verify?token=${token}&return=${encodeURIComponent(baseUrl + '/portal.html')}`
+
+    const from = c.env.RESEND_FROM || 'Doll Trap <onboarding@resend.dev>'
+    await sendMagicEmail(c.env.RESEND_API_KEY, from, email, verifyUrl, true)
+
+    return c.json({ sent: true })
+  } catch (err: any) { return c.json({ error: err.message }, 500) }
+})
+
+membersRouter.get('/magic/verify', async (c) => {
+  const token = c.req.query('token')
+  const returnUrl = c.req.query('return') || 'https://dolltrap.github.io/docs/portal.html'
+  const fail = (msg: string) => Response.redirect(`${returnUrl}?authError=${encodeURIComponent(msg)}`, 302)
+
+  if (!token) return fail('Missing token')
+
+  try {
+    const row = await dbFirst(c.env.DB, 'SELECT * FROM magic_tokens WHERE token=?', token)
+    if (!row) return fail('Invalid or expired link')
+    if (Number(row.expires_at) < Math.floor(Date.now() / 1000)) {
+      await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
+      return fail('Link expired — please request a new one')
+    }
+
+    await dbRun(c.env.DB, 'DELETE FROM magic_tokens WHERE token=?', token)
+
+    const member = await dbFirst(c.env.DB,
+      'INSERT INTO members (display_name, email, password_hash, email_verified, email_updates) VALUES (?,?,?,1,?) RETURNING id,display_name,email,email_updates,created_at',
+      row.display_name, row.email, row.password_hash, Number(row.email_updates),
+    )
+
+    const jwt = await memberToken(member!, c.env.JWT_SECRET)
+    return Response.redirect(`${returnUrl}?memberToken=${encodeURIComponent(jwt)}`, 302)
+  } catch (err: any) {
+    return fail('Something went wrong')
+  }
+})
+
+// ── Google OAuth ──────────────────────────────────────────────
+
+membersRouter.get('/auth/google', (c) => {
+  const redirectUri = 'https://api.dolltrap.workers.dev/api/members/auth/google/callback'
+  const params = new URLSearchParams({
+    client_id: c.env.GOOGLE_CLIENT_ID,
+    redirect_uri: redirectUri,
+    response_type: 'code',
+    scope: 'openid email profile',
+    prompt: 'select_account',
+  })
+  return Response.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`, 302)
+})
+
+membersRouter.get('/auth/google/callback', async (c) => {
+  const returnUrl = (c.env.FRONTEND_URL || 'https://dolltrap.github.io/docs') + '/portal.html'
+  const fail = (msg: string) => Response.redirect(`${returnUrl}?authError=${encodeURIComponent(msg)}`, 302)
+  const code = c.req.query('code')
+  if (!code) return fail('Google login cancelled')
+
+  try {
+    const redirectUri = 'https://api.dolltrap.workers.dev/api/members/auth/google/callback'
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code, grant_type: 'authorization_code',
+        client_id: c.env.GOOGLE_CLIENT_ID,
+        client_secret: c.env.GOOGLE_CLIENT_SECRET,
+        redirect_uri: redirectUri,
+      }),
+    })
+    if (!tokenRes.ok) return fail('Google authentication failed')
+    const tokens = await tokenRes.json() as any
+
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { 'Authorization': `Bearer ${tokens.access_token}` },
+    })
+    if (!userRes.ok) return fail('Failed to get Google user info')
+    const gu = await userRes.json() as any
+    if (!gu.email) return fail('No email returned from Google')
+
+    let member = await dbFirst(c.env.DB, 'SELECT * FROM members WHERE email=?', gu.email)
+    if (!member) {
+      member = await dbFirst(c.env.DB,
+        'INSERT INTO members (display_name,email,password_hash,email_verified,email_updates) VALUES (?,?,?,1,0) RETURNING id,display_name,email,email_updates,created_at',
+        gu.name || gu.email.split('@')[0], gu.email, 'google_oauth',
+      )
+    } else if (!member.email_verified) {
+      await dbRun(c.env.DB, 'UPDATE members SET email_verified=1 WHERE id=?', member.id)
+    }
+
+    const jwt = await memberToken(member!, c.env.JWT_SECRET)
+    return Response.redirect(`${returnUrl}?memberToken=${encodeURIComponent(jwt)}`, 302)
+  } catch (err: any) {
+    return fail('Something went wrong')
+  }
 })
 
 // ── Saved Events ──────────────────────────────────────────────

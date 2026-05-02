@@ -603,6 +603,10 @@
           </div>
           <div class="portal-profile-actions">
             <button class="portal-btn-sm portal-btn-pink" onclick="toggleEditName(true)">✏️ Edit Name</button>
+            <label class="portal-btn-sm portal-btn-gray" style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none">
+              <input type="checkbox" id="emailUpdatesToggle" style="width:auto;accent-color:#d946a6" onchange="saveEmailUpdates(this.checked)">
+              Monthly updates 🎀
+            </label>
             <button class="portal-btn-sm portal-btn-red" onclick="doLogout()">🚪 Logout</button>
           </div>
         </div>
@@ -768,6 +772,7 @@
             body: JSON.stringify({
               email,
               display_name: document.getElementById('regName').value.trim(),
+              password: document.getElementById('regPassword').value,
               email_updates: document.getElementById('regEmailUpdates').checked
             })
           });
@@ -813,11 +818,22 @@
             'Member since ' + d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
         }
         document.getElementById('editNameInput').value = member.display_name;
+        document.getElementById('emailUpdatesToggle').checked = !!member.email_updates;
 
         loadCheckins();
         loadSavedEvents();
         loadSavedPhotos();
         loadMyMessages();
+      }
+
+      async function saveEmailUpdates(checked) {
+        try {
+          await fetch(`${API_URL}/members/email-updates`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${memberToken}` },
+            body: JSON.stringify({ email_updates: checked })
+          });
+        } catch (_) {}
       }
 
       function doLogout() {
