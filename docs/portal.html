@@ -867,6 +867,8 @@
         if (tok) {
           localStorage.setItem('memberToken', tok);
           memberToken = tok;
+          const payload = parseJwt(tok);
+          if (payload) showDashboard({ id: payload.id, display_name: payload.display_name, email: payload.email, email_updates: 0 });
         }
         if (resetTok) {
           pendingResetToken = resetTok;

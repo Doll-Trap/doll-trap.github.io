@@ -12,7 +12,7 @@ const app = new Hono<HonoEnv>()
 app.use('*', cors({
   origin: (origin) => {
     if (!origin) return origin
-    const allowed = ['https://doll-trap.github.io', 'https://dolltrap.github.io']
+    const allowed = ['https://doll-trap.github.io', 'https://dolltrap.github.io', 'https://dolltrap.com', 'https://www.dolltrap.com']
     if (allowed.includes(origin)) return origin
     if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return origin
     return null
